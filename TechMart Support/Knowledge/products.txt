@@ -1,0 +1,35 @@
+TECHMART PRODUCT INFORMATION
+
+TechMart is an online electronics store.
+
+PRODUCT 1
+Name: TechMart Laptop Pro X
+Category: Laptop
+Price: ₹65,000
+Warranty: 1 year
+Availability: In stock
+Description: 15.6-inch laptop designed for students and professionals.
+
+PRODUCT 2
+Name: TechMart Phone X1
+Category: Smartphone
+Price: ₹32,000
+Warranty: 1 year
+Availability: In stock
+Description: 6.5-inch smartphone with 128GB storage.
+
+PRODUCT 3
+Name: TechMart Buds Air
+Category: Wireless Earbuds
+Price: ₹4,999
+Warranty: 6 months
+Availability: In stock
+Description: Wireless earbuds with charging case and noise reduction.
+
+PRODUCT 4
+Name: TechMart Keyboard K1
+Category: Keyboard
+Price: ₹2,499
+Warranty: 1 year
+Availability: In stock
+Description: Wireless mechanical keyboard.
