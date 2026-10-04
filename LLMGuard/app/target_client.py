@@ -57,6 +57,7 @@ def send_attack(prompt):
     """
     Sends an adversarial prompt to the TechMart Support /chat endpoint
     with automatic retry logic on network or HTTP failures.
+    Returns a tuple of (response_text, latency_ms).
     """
     payload = {
         "message": prompt
@@ -64,15 +65,17 @@ def send_attack(prompt):
 
     for attempt in range(1, MAX_RETRIES + 1):
         try:
+            t0 = time.monotonic()
             response = requests.post(
                 TARGET_URL,
                 json=payload,
                 timeout=60
             )
+            latency_ms = round((time.monotonic() - t0) * 1000)
 
             response.raise_for_status()
 
-            return response.json()["response"]
+            return response.json()["response"], latency_ms
 
         except requests.exceptions.HTTPError as error:
             print(
@@ -86,7 +89,8 @@ def send_attack(prompt):
             else:
                 return (
                     "[ERROR] Target API failed after "
-                    f"{MAX_RETRIES} attempts."
+                    f"{MAX_RETRIES} attempts.",
+                    None,
                 )
 
         except requests.exceptions.RequestException as error:
@@ -101,7 +105,8 @@ def send_attack(prompt):
             else:
                 return (
                     "[ERROR] Could not connect to "
-                    "the target application."
+                    "the target application.",
+                    None,
                 )
 
 

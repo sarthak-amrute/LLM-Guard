@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLMGuard — LLM Security &amp; Adversarial Testing Suite</title>
+  <meta name="description" content="LLMGuard: Professional LLM security testing and adversarial evaluation suite for TechMart Support AI">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'error': '#f43f5e', 'outline-variant': '#2d2945', 'outline': '#7e789a',
+            'on-surface': '#e8e5f5', 'on-error': '#4c0519', 'tertiary': '#10b981',
+            'inverse-on-surface': '#1d1a2f', 'on-background': '#e8e5f5',
+            'surface-variant': '#231f38', 'surface-container-low': '#151322',
+            'surface-bright': '#2d2945', 'surface-container-lowest': '#0e0d15',
+            'inverse-surface': '#e8e5f5', 'surface-container': '#191629',
+            'on-error-container': '#ffe4e6', 'on-primary': '#003820', 'primary': '#10b981',
+            'on-surface-variant': '#aba3c7', 'on-tertiary': '#003820',
+            'background': '#0e0d15', 'error-container': '#881337', 'surface': '#0e0d15',
+            'primary-container': '#059669', 'on-primary-container': '#ecfdf5',
+            'surface-container-highest': '#25213b', 'secondary-container': '#b45309',
+            'surface-container-high': '#1e1b32', 'secondary': '#f59e0b',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; margin: 0; overscroll-behavior: none; background: #0e0d15; color: #e8e5f5; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .ms { font-family: 'Material Symbols Outlined'; font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 20; font-size: 20px; line-height: 1; }
+
+    /* ── Scrollbars ── */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #0e0d15; }
+    ::-webkit-scrollbar-thumb { background: #2d2945; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #7e789a; }
+
+    /* ── Pages ── */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ── Nav ── */
+    .nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #aba3c7; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .nav-item:hover { background: #1e1b32; color: #e8e5f5; }
+    .nav-item.active { background: #10b981; color: #003820; font-weight: 600; box-shadow: 0 0 14px rgba(16,185,129,0.3); }
+    .nav-item .ms { font-size: 18px; }
+
+    /* ── Badges ── */
+    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .badge-safe { background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+    .badge-vulnerable { background: rgba(136,19,55,0.75); color: #ffe4e6; border: 1px solid rgba(244,63,94,0.5); }
+    .badge-error { background: rgba(180,83,9,0.2); color: #f59e0b; border: 1px solid rgba(245,158,11,0.4); }
+    .badge-running { background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+
+    /* ── Card ── */
+    .card { background: #151322; border: 1px solid #2d2945; border-radius: 12px; }
+    .card-header { padding: 16px 20px; border-bottom: 1px solid #2d2945; }
+
+    /* ── Table ── */
+    .tbl-row { transition: background 0.1s; }
+    .tbl-row:hover { background: #1e1b32; cursor: pointer; }
+    th { font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: #7e789a; font-weight: 600; padding: 10px 16px; }
+    td { padding: 11px 16px; font-size: 13px; }
+
+    /* ── Animations ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes ping { 0%,100%{opacity:1}50%{opacity:.4} }
+    @keyframes glow { 0%,100%{opacity:.7}50%{opacity:1} }
+    .spin { animation: spin 1s linear infinite; display: inline-block; }
+    .pulse { animation: ping 2s ease infinite; }
+
+    /* ── Modal ── */
+    #modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    #modal-overlay.open { display: flex; }
+    .modal-box { background: #151322; border: 1px solid #2d2945; border-radius: 16px; width: 100%; max-width: 680px; margin: 16px; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 60px rgba(0,0,0,0.7); }
+
+    /* ── Donut ring transition ── */
+    .donut-arc { transition: stroke-dasharray 0.9s ease, stroke-dashoffset 0.9s ease; }
+
+    /* ── Mobile sidebar ── */
+    #mob-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 49; }
+
+    @media (max-width: 768px) {
+      #sidebar { transform: translateX(-100%); transition: transform 0.25s ease; z-index: 50; }
+      #sidebar.open { transform: translateX(0); }
+      #main { margin-left: 0 !important; }
+      #topbar { left: 0 !important; }
+      #mob-overlay.open { display: block; }
+    }
+
+    /* ── Progress bar ── */
+    .prog-bar { height: 6px; background: #25213b; border-radius: 6px; overflow: hidden; }
+    .prog-fill { height: 100%; background: #10b981; border-radius: 6px; transition: width 0.5s ease; box-shadow: 0 0 8px rgba(16,185,129,0.5); }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: #2d2945; }
+
+    /* ── Input ── */
+    .inp { background: #191629; border: 1px solid #2d2945; color: #e8e5f5; border-radius: 8px; padding: 8px 12px; font-size: 12px; outline: none; font-family: 'JetBrains Mono', monospace; transition: border-color 0.15s; width: 100%; }
+    .inp:focus { border-color: rgba(16,185,129,0.6); }
+
+    /* ── Button styles ── */
+    .btn-primary { display: inline-flex; align-items: center; gap: 6px; background: #10b981; color: #003820; font-weight: 600; font-size: 13px; padding: 8px 18px; border-radius: 10px; border: none; cursor: pointer; transition: all 0.15s; box-shadow: 0 0 16px rgba(16,185,129,0.3); }
+    .btn-primary:hover { background: #059669; box-shadow: 0 0 24px rgba(16,185,129,0.4); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+    .btn-ghost { display: inline-flex; align-items: center; gap: 6px; background: #1e1b32; color: #e8e5f5; font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 8px; border: 1px solid #2d2945; cursor: pointer; transition: all 0.15s; }
+    .btn-ghost:hover { background: #25213b; }
+
+    /* ── Checkbox ── */
+    input[type="checkbox"] { accent-color: #10b981; width: 15px; height: 15px; cursor: pointer; }
+    input[type="radio"] { accent-color: #10b981; width: 15px; height: 15px; cursor: pointer; }
+
+    /* ── Section label ── */
+    .sec-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #7e789a; font-weight: 600; }
+
+    /* ── Code block ── */
+    .code-block { background: #0e0d15; border: 1px solid #2d2945; border-radius: 8px; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #aba3c7; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════ MOBILE OVERLAY -->
+<div id="mob-overlay" onclick="closeSidebar()"></div>
+
+<!-- ════════════════════════════════════════════════ SIDEBAR -->
+<aside id="sidebar" style="position:fixed;top:0;left:0;height:100%;width:256px;background:#0e0d15;border-right:1px solid #2d2945;display:flex;flex-direction:column;box-shadow:2px 0 20px rgba(0,0,0,0.5);">
+
+  <!-- Brand -->
+  <div style="height:64px;padding:0 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(45,41,69,0.5);flex-shrink:0;">
+    <div style="width:34px;height:34px;border-radius:8px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <span class="ms" style="color:#10b981;font-size:18px;">shield</span>
+    </div>
+    <div>
+      <div style="font-size:14px;font-weight:700;color:#e8e5f5;letter-spacing:-0.3px;">LLMGuard</div>
+      <div class="mono" style="font-size:8px;text-transform:uppercase;letter-spacing:0.12em;color:#10b981;font-weight:600;">Security Testing Suite</div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <div style="flex:1;overflow-y:auto;padding:8px;">
+    <div class="sec-label" style="padding:12px 12px 6px;">Navigation</div>
+    <nav id="nav">
+      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')"><span class="ms">dashboard</span>Dashboard</div>
+      <div class="nav-item" data-page="run-scan" onclick="navigate('run-scan')"><span class="ms">play_arrow</span>Run Scan</div>
+      <div class="nav-item" data-page="live-scan" onclick="navigate('live-scan')"><span class="ms">radar</span>Live Scan</div>
+      <div class="nav-item" data-page="results" onclick="navigate('results')"><span class="ms">policy</span>Results</div>
+      <div class="nav-item" data-page="test-cases" onclick="navigate('test-cases')"><span class="ms">biotech</span>Test Cases</div>
+      <div class="nav-item" data-page="reports" onclick="navigate('reports')"><span class="ms">assessment</span>Reports</div>
+    </nav>
+    <div class="sec-label" style="padding:16px 12px 6px;">Target</div>
+    <nav>
+      <div class="nav-item" data-page="target-config" onclick="navigate('target-config')"><span class="ms">settings_input_component</span>Target Config</div>
+    </nav>
+    <div class="sec-label" style="padding:16px 12px 6px;">System</div>
+    <nav>
+      <div class="nav-item" data-page="settings" onclick="navigate('settings')"><span class="ms">settings</span>Settings</div>
+    </nav>
+  </div>
+
+  <!-- System status -->
+  <div style="padding:12px;border-top:1px solid rgba(45,41,69,0.5);flex-shrink:0;display:flex;flex-direction:column;gap:8px;">
+    <div style="background:#191629;border:1px solid #2d2945;border-radius:8px;padding:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <span class="sec-label">System Status</span>
+        <span id="sb-dot" style="width:7px;height:7px;border-radius:50%;background:#7e789a;display:inline-block;"></span>
+      </div>
+      <div id="sb-status" class="mono" style="font-size:10px;color:#aba3c7;font-weight:600;">Connecting…</div>
+    </div>
+    <div style="background:#191629;border:1px solid #2d2945;border-radius:8px;padding:10px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div class="sec-label" style="margin-bottom:3px;">Target Mode</div>
+        <div id="sb-mode" class="mono" style="font-size:10px;color:#aba3c7;font-weight:600;">—</div>
+      </div>
+      <span id="sb-mode-badge" class="badge" style="background:rgba(126,120,154,0.15);color:#7e789a;border-color:rgba(126,120,154,0.3);">--</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ════════════════════════════════════════════════ MAIN -->
+<div id="main" style="margin-left:256px;min-height:100vh;display:flex;flex-direction:column;">
+
+  <!-- TOP BAR -->
+  <header id="topbar" style="position:fixed;top:0;left:256px;right:0;height:64px;background:rgba(14,13,21,0.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(45,41,69,0.7);z-index:40;display:flex;align-items:center;justify-content:space-between;padding:0 24px;box-shadow:0 1px 12px rgba(0,0,0,0.4);">
+
+    <div style="display:flex;align-items:center;gap:12px;flex:1;">
+      <!-- Mobile menu -->
+      <button onclick="toggleSidebar()" style="display:none;background:none;border:none;color:#aba3c7;cursor:pointer;padding:4px;" id="mob-menu-btn">
+        <span class="ms">menu</span>
+      </button>
+      <!-- Search -->
+      <div style="position:relative;max-width:380px;width:100%;">
+        <span class="ms" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#7e789a;font-size:16px;">search</span>
+        <input id="global-search" type="text" placeholder="Search tests, IDs, categories…" oninput="globalSearch()"
+          style="width:100%;background:#191629;border:1px solid #2d2945;color:#e8e5f5;border-radius:8px;padding:7px 12px 7px 34px;font-family:'JetBrains Mono',monospace;font-size:11px;outline:none;transition:border-color 0.15s;"
+          onfocus="this.style.borderColor='rgba(16,185,129,0.6)'" onblur="this.style.borderColor='#2d2945'">
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;">
+      <!-- Target indicator -->
+      <div id="hdr-target" style="display:flex;align-items:center;gap:8px;padding:6px 12px;background:#191629;border:1px solid #2d2945;border-radius:8px;">
+        <span id="hdr-dot" style="width:7px;height:7px;border-radius:50%;background:#7e789a;flex-shrink:0;"></span>
+        <span class="mono" style="font-size:11px;color:#aba3c7;">Target: <span id="hdr-mode" style="color:#e8e5f5;font-weight:600;">--</span></span>
+      </div>
+      <!-- New Scan -->
+      <button onclick="navigate('run-scan')" class="btn-primary" style="font-size:12px;padding:7px 14px;">
+        <span class="ms" style="font-size:16px;">add_moderator</span>New Scan
+      </button>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════════════════ PAGE CONTAINER -->
+  <main style="padding-top:64px;flex:1;">
+
+    <!-- ═══ DASHBOARD ═══ -->
+    <div id="page-dashboard" class="page active" style="padding:28px 28px;max-width:1400px;">
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
+        <div>
+          <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.5px;margin:0 0 4px;">Dashboard</h1>
+          <p style="font-size:13px;color:#aba3c7;margin:0;">Monitor the security posture of your LLM application.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#151322;border:1px solid #2d2945;border-radius:10px;">
+          <span id="dash-conn-dot" style="width:7px;height:7px;border-radius:50%;background:#7e789a;"></span>
+          <span class="mono" style="font-size:11px;color:#aba3c7;">TechMart Support: <span id="dash-conn-label" style="color:#e8e5f5;font-weight:600;">—</span></span>
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;" class="stats-grid">
+        <div class="card" style="padding:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span class="sec-label">Total Tests</span>
+            <span class="ms" style="color:#7e789a;font-size:18px;">fact_check</span>
+          </div>
+          <div id="d-total" style="font-size:32px;font-weight:700;color:#e8e5f5;letter-spacing:-1px;">—</div>
+          <div class="mono" style="font-size:10px;color:#7e789a;margin-top:4px;">Last scan</div>
+        </div>
+        <div class="card" style="padding:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span class="sec-label">Safe</span>
+            <span class="ms" style="color:#10b981;font-size:18px;">verified_user</span>
+          </div>
+          <div id="d-safe" style="font-size:32px;font-weight:700;color:#10b981;letter-spacing:-1px;">—</div>
+          <div class="mono" style="font-size:10px;color:#7e789a;margin-top:4px;">No leakage detected</div>
+        </div>
+        <div class="card" style="padding:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span class="sec-label">Vulnerable</span>
+            <span class="ms" style="color:#f43f5e;font-size:18px;">gpp_bad</span>
+          </div>
+          <div id="d-vuln" style="font-size:32px;font-weight:700;color:#f43f5e;letter-spacing:-1px;">—</div>
+          <div class="mono" style="font-size:10px;color:#7e789a;margin-top:4px;">Canary leaked</div>
+        </div>
+        <div class="card" style="padding:18px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span class="sec-label">Target Errors</span>
+            <span class="ms" style="color:#f59e0b;font-size:18px;">error</span>
+          </div>
+          <div id="d-err" style="font-size:32px;font-weight:700;color:#f59e0b;letter-spacing:-1px;">—</div>
+          <div class="mono" style="font-size:10px;color:#7e789a;margin-top:4px;">API failures</div>
+        </div>
+      </div>
+
+      <!-- Chart + Findings -->
+      <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;margin-bottom:20px;" class="chart-grid">
+
+        <!-- Donut -->
+        <div class="card" style="padding:20px;">
+          <div class="sec-label" style="margin-bottom:16px;">Security Distribution</div>
+          <div id="d-no-data" style="text-align:center;padding:32px 0;">
+            <span class="ms" style="color:#7e789a;font-size:36px;display:block;margin-bottom:8px;">analytics</span>
+            <p style="font-size:12px;color:#7e789a;margin:0 0 4px;">No scan data yet</p>
+            <p class="mono" style="font-size:10px;color:#4a4668;margin:0 0 14px;">Run a scan to see results</p>
+            <button onclick="navigate('run-scan')" class="btn-primary" style="font-size:11px;padding:6px 14px;">Run First Scan</button>
+          </div>
+          <div id="d-chart" style="display:none;flex-direction:column;align-items:center;gap:16px;">
+            <div style="position:relative;width:120px;height:120px;">
+              <svg viewBox="0 0 36 36" style="width:100%;height:100%;transform:rotate(-90deg);">
+                <circle cx="18" cy="18" r="15.9" fill="none" stroke="#25213b" stroke-width="3.5"/>
+                <circle id="arc-safe" cx="18" cy="18" r="15.9" fill="none" stroke="#10b981" stroke-width="3.5" stroke-dasharray="0 100" stroke-linecap="round" class="donut-arc"/>
+                <circle id="arc-vuln" cx="18" cy="18" r="15.9" fill="none" stroke="#f43f5e" stroke-width="3.5" stroke-dasharray="0 100" stroke-dashoffset="0" stroke-linecap="round" class="donut-arc"/>
+                <circle id="arc-err"  cx="18" cy="18" r="15.9" fill="none" stroke="#f59e0b" stroke-width="3.5" stroke-dasharray="0 100" stroke-dashoffset="0" stroke-linecap="round" class="donut-arc"/>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <div id="arc-center" style="font-size:24px;font-weight:700;color:#e8e5f5;line-height:1;"></div>
+                <div class="mono" style="font-size:8px;color:#10b981;font-weight:700;text-transform:uppercase;">Safe</div>
+              </div>
+            </div>
+            <div class="mono" style="font-size:11px;width:100%;display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="width:9px;height:9px;border-radius:50%;background:#10b981;flex-shrink:0;"></span>
+                <span style="color:#aba3c7;">SAFE:</span>
+                <span id="leg-safe" style="color:#e8e5f5;font-weight:700;margin-left:auto;"></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="width:9px;height:9px;border-radius:50%;background:#f43f5e;flex-shrink:0;"></span>
+                <span style="color:#aba3c7;">VULN:</span>
+                <span id="leg-vuln" style="color:#f43f5e;font-weight:700;margin-left:auto;"></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="width:9px;height:9px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></span>
+                <span style="color:#aba3c7;">ERR:</span>
+                <span id="leg-err" style="color:#f59e0b;font-weight:700;margin-left:auto;"></span>
+              </div>
+            </div>
+            <div id="d-scan-meta" class="mono" style="font-size:9px;color:#7e789a;text-align:center;border-top:1px solid #2d2945;padding-top:10px;width:100%;line-height:1.7;"></div>
+          </div>
+        </div>
+
+        <!-- Recent findings -->
+        <div class="card">
+          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+            <span class="sec-label">Recent Vulnerability Findings</span>
+            <button onclick="navigate('results')" style="background:none;border:none;font-family:'JetBrains Mono',monospace;font-size:10px;color:#10b981;cursor:pointer;">View All →</button>
+          </div>
+          <div id="d-findings" style="padding:0;">
+            <div style="text-align:center;padding:48px 24px;">
+              <span class="ms" style="color:#7e789a;font-size:36px;display:block;margin-bottom:8px;">shield_with_heart</span>
+              <p class="mono" style="font-size:11px;color:#7e789a;margin:0;">No findings yet. Run a scan to see results.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category breakdown -->
+      <div id="d-cat-section" class="card" style="display:none;">
+        <div class="card-header"><span class="sec-label">Category Breakdown</span></div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr style="background:#0e0d15;">
+              <th style="text-align:left;">Category</th>
+              <th style="text-align:right;">Tests</th>
+              <th style="text-align:right;">Safe</th>
+              <th style="text-align:right;">Vulnerable</th>
+              <th style="text-align:right;">Errors</th>
+            </tr></thead>
+            <tbody id="d-cat-tbody" style=""></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ RUN SCAN ═══ -->
+    <div id="page-run-scan" class="page" style="padding:28px;max-width:760px;">
+
+      <div style="margin-bottom:24px;">
+        <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.5px;margin:0 0 4px;">Run Security Scan</h1>
+        <p style="font-size:13px;color:#aba3c7;margin:0;">Configure and execute adversarial tests against TechMart Support AI.</p>
+      </div>
+
+      <!-- Target -->
+      <div class="card" style="padding:20px;margin-bottom:16px;">
+        <div class="sec-label" style="margin-bottom:14px;">Target</div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:42px;height:42px;border-radius:10px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span class="ms" style="color:#10b981;">hub</span>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;color:#e8e5f5;">TechMart Customer Support AI</div>
+            <div class="mono" style="font-size:11px;color:#aba3c7;margin-top:2px;">http://127.0.0.1:8000/chat</div>
+          </div>
+          <div id="rs-target-status" style="display:flex;align-items:center;gap:7px;padding:6px 12px;background:#191629;border:1px solid #2d2945;border-radius:8px;">
+            <span id="rs-tdot" style="width:7px;height:7px;border-radius:50%;background:#7e789a;flex-shrink:0;"></span>
+            <span id="rs-tlabel" class="mono" style="font-size:11px;color:#aba3c7;">Checking…</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mode -->
+      <div class="card" style="padding:20px;margin-bottom:16px;">
+        <div class="sec-label" style="margin-bottom:14px;">Target Mode</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <label id="mode-card-secure" style="display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:10px;border:2px solid #10b981;background:rgba(16,185,129,0.05);cursor:pointer;transition:all 0.15s;">
+            <input type="radio" name="scan-mode" value="SECURE" checked style="margin-top:2px;">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#e8e5f5;">SECURE Mode</div>
+              <div class="mono" style="font-size:10px;color:#aba3c7;margin-top:3px;">Full security controls active</div>
+            </div>
+          </label>
+          <label id="mode-card-vuln" style="display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:10px;border:2px solid #2d2945;cursor:pointer;transition:all 0.15s;">
+            <input type="radio" name="scan-mode" value="VULNERABLE" style="margin-top:2px;">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#e8e5f5;">VULNERABLE Mode</div>
+              <div class="mono" style="font-size:10px;color:#aba3c7;margin-top:3px;">Intentionally weakened (testing)</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div class="card" style="padding:20px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="sec-label">Attack Categories</div>
+          <div style="display:flex;gap:10px;">
+            <button onclick="selectAll()" style="background:none;border:none;font-family:'JetBrains Mono',monospace;font-size:10px;color:#10b981;cursor:pointer;">Select All</button>
+            <span style="color:#7e789a;">·</span>
+            <button onclick="clearAll()" style="background:none;border:none;font-family:'JetBrains Mono',monospace;font-size:10px;color:#7e789a;cursor:pointer;">Clear</button>
+          </div>
+        </div>
+        <div id="cat-checkboxes" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="mono" style="color:#7e789a;font-size:11px;grid-column:1/-1;text-align:center;padding:16px;">Loading…</div>
+        </div>
+      </div>
+
+      <!-- Run -->
+      <div style="display:flex;align-items:center;gap:14px;">
+        <button id="run-btn" onclick="startScan()" class="btn-primary" style="font-size:13px;padding:10px 24px;">
+          <span class="ms" style="font-size:20px;">play_arrow</span>Run Security Scan
+        </button>
+        <span id="run-msg" class="mono" style="font-size:11px;color:#7e789a;"></span>
+      </div>
+    </div>
+
+    <!-- ═══ LIVE SCAN ═══ -->
+    <div id="page-live-scan" class="page" style="padding:28px;max-width:1100px;">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
+        <div>
+          <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.5px;margin:0 0 4px;">Live Scan</h1>
+          <p style="font-size:13px;color:#aba3c7;margin:0;">Real-time execution of adversarial test suite.</p>
+        </div>
+        <span id="live-badge" class="badge" style="background:#191629;color:#7e789a;border-color:#2d2945;padding:6px 14px;font-size:10px;">No scan running</span>
+      </div>
+
+      <!-- Progress card -->
+      <div class="card" style="padding:20px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#e8e5f5;">Scan Progress</div>
+            <div id="live-prog-label" class="mono" style="font-size:11px;color:#aba3c7;margin-top:2px;">—</div>
+          </div>
+          <div class="mono" style="font-size:11px;display:flex;gap:18px;">
+            <span style="color:#10b981;">SAFE <span id="lv-safe" style="font-weight:700;">0</span></span>
+            <span style="color:#f43f5e;">VULN <span id="lv-vuln" style="font-weight:700;">0</span></span>
+            <span style="color:#f59e0b;">ERR <span id="lv-err" style="font-weight:700;">0</span></span>
+          </div>
+        </div>
+        <div class="prog-bar"><div id="live-prog-fill" class="prog-fill" style="width:0%;"></div></div>
+        <div id="live-cur" class="mono" style="margin-top:10px;font-size:10px;color:#7e789a;display:none;">
+          Running: <span id="live-cur-id" style="color:#10b981;font-weight:700;"></span> — <span id="live-cur-name" style="color:#aba3c7;"></span>
+        </div>
+      </div>
+
+      <!-- Results stream -->
+      <div class="card" style="overflow:hidden;">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+          <span class="sec-label">Test Execution Log</span>
+          <span id="live-scan-id" class="mono" style="font-size:10px;color:#7e789a;"></span>
+        </div>
+        <div id="live-list" style="max-height:520px;overflow-y:auto;">
+          <div id="live-empty" style="text-align:center;padding:56px 24px;">
+            <span class="ms" style="color:#7e789a;font-size:40px;display:block;margin-bottom:10px;">radar</span>
+            <p style="font-size:13px;color:#7e789a;margin:0 0 14px;">Start a scan to see live results</p>
+            <button onclick="navigate('run-scan')" class="btn-primary" style="font-size:12px;">Go to Run Scan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ RESULTS ═══ -->
+    <div id="page-results" class="page" style="padding:28px;max-width:1200px;">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
+        <div>
+          <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.5px;margin:0 0 4px;">Security Assessment</h1>
+          <p style="font-size:13px;color:#aba3c7;margin:0;">Complete results from the latest security scan.</p>
+        </div>
+        <span id="res-scan-info" class="mono" style="font-size:10px;color:#7e789a;"></span>
+      </div>
+
+      <!-- Empty -->
+      <div id="res-empty" class="card" style="padding:64px 24px;text-align:center;">
+        <span class="ms" style="color:#7e789a;font-size:48px;display:block;margin-bottom:12px;">policy</span>
+        <h2 style="font-size:18px;font-weight:600;margin:0 0 8px;">No Scan Results</h2>
+        <p style="font-size:13px;color:#7e789a;margin:0 0 18px;">Run a security scan to see results here.</p>
+        <button onclick="navigate('run-scan')" class="btn-primary">Run First Scan</button>
+      </div>
+
+      <!-- Summary -->
+      <div id="res-summary" style="display:none;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;" class="stats-grid">
+        <div class="card" style="padding:16px;"><div class="sec-label" style="margin-bottom:6px;">Total</div><div id="rs-total" style="font-size:26px;font-weight:700;color:#e8e5f5;"></div></div>
+        <div class="card" style="padding:16px;"><div class="sec-label" style="margin-bottom:6px;">Safe</div><div id="rs-safe" style="font-size:26px;font-weight:700;color:#10b981;"></div></div>
+        <div class="card" style="padding:16px;"><div class="sec-label" style="margin-bottom:6px;">Vulnerable</div><div id="rs-vuln" style="font-size:26px;font-weight:700;color:#f43f5e;"></div></div>
+        <div class="card" style="padding:16px;"><div class="sec-label" style="margin-bottom:6px;">Errors</div><div id="rs-err" style="font-size:26px;font-weight:700;color:#f59e0b;"></div></div>
+      </div>
+
+      <!-- Category table -->
+      <div id="res-cat" class="card" style="display:none;margin-bottom:16px;overflow:hidden;">
+        <div class="card-header"><span class="sec-label">Category Breakdown</span></div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr style="background:#0e0d15;">
+              <th style="text-align:left;">Category</th>
+              <th style="text-align:right;">Tests</th>
+              <th style="text-align:right;">Safe</th>
+              <th style="text-align:right;">Vulnerable</th>
+              <th style="text-align:right;">Errors</th>
+            </tr></thead>
+            <tbody id="res-cat-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div id="res-table-section" class="card" style="display:none;overflow:hidden;">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <span class="sec-label">Inspection Log</span>
+          <div id="res-tabs" style="display:flex;background:#0e0d15;border:1px solid #2d2945;border-radius:8px;padding:4px;gap:4px;">
+            <button class="res-tab active" data-f="all" onclick="setResFilter('all',this)">All</button>
+            <button class="res-tab" data-f="SAFE" onclick="setResFilter('SAFE',this)" style="color:#10b981;">Safe</button>
+            <button class="res-tab" data-f="VULNERABLE" onclick="setResFilter('VULNERABLE',this)" style="color:#f43f5e;">Vulnerable</button>
+            <button class="res-tab" data-f="TARGET_ERROR" onclick="setResFilter('TARGET_ERROR',this)" style="color:#f59e0b;">Errors</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead><tr style="background:#0e0d15;">
+              <th style="text-align:left;">Test ID</th>
+              <th style="text-align:left;">Category</th>
+              <th style="text-align:left;">Attack</th>
+              <th style="text-align:left;">Response Preview</th>
+              <th style="text-align:right;">Result</th>
+            </tr></thead>
+            <tbody id="res-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TEST CASES ═══ -->
+    <div id="page-test-cases" class="page" style="padding:28px;max-width:1100px;">
+      <div style="margin-bottom:24px;">
+        <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.5px;margin:0 0 4px;">Test Cases</h1>
+        <p style="font-size:13px;color:#aba3c7;margin:0;">Browse all adversarial attack definitions in the LLMGuard suite.</p>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+        <div style="position:relative;flex:1;min-width:240px;">
+          <span class="ms" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#7e789a;font-size:16px;">search</span>
+          <input id="tc-search" type="text" placeholder="Search by ID, name, objective…" oninput="filterTC()"
+            class="inp" style="padding-left:34px;">
+        </div>
+        <select id="tc-cat" onchange="filterTC()" class="inp" style="width:auto;min-width:200px;">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+      <div id="tc-list">
+        <div style="text-align:center;padding:64px 24px;color:#7e789a;">
+          <span class="ms spin" style="font-size:36px;color:#7e789a;display:block;margin-bottom:10px;">sync</span>
+          <p class="mono" style="font-size:11px;">Loading test cases…</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ TARGET CONFIG ═══ -->
+    <div id="page-target-config" class="page" style="padding:28px;max-width:700px;">
+      <div style="margin-bottom:24px;">
+        <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.5px;margin:0 0 4px;">Target Configuration</h1>
+        <p style="font-size:13px;color:#aba3c7;margin:0;">Manage the LLMGuard test target and connection settings.</p>
+      </div>
+
+      <!-- Target info -->
+      <div class="card" style="padding:20px;margin-bottom:16px;">
+        <div class="sec-label" style="margin-bottom:14px;">Target Application</div>
+        <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;">
+          <div style="width:46px;height:46px;border-radius:12px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <span class="ms" style="color:#10b981;font-size:22px;">hub</span>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:600;color:#e8e5f5;">TechMart Customer Support AI</div>
+            <div class="mono" style="font-size:11px;color:#aba3c7;margin-top:3px;">http://127.0.0.1:8000</div>
+            <div class="mono" style="font-size:10px;color:#7e789a;margin-top:2px;">Endpoints: /chat · GET /mode · POST /mode</div>
+          </div>
+        </div>
+        <div style="background:#191629;border:1px solid #2d2945;border-radius:8px;padding:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span id="tc-conn-dot" style="width:9px;height:9px;border-radius:50%;background:#7e789a;flex-shrink:0;"></span>
+            <div>
+              <div id="tc-conn-label" style="font-size:13px;font-weight:600;color:#e8e5f5;">Checking…</div>
+              <div id="tc-conn-detail" class="mono" style="font-size:10px;color:#7e789a;margin-top:1px;"></div>
+            </div>
+          </div>
+          <button onclick="testConn()" class="btn-ghost" style="font-size:12px;padding:7px 14px;">
+            <span class="ms" style="font-size:16px;">wifi_tethering</span>Test Connection
+          </button>
+        </div>
+      </div>
+
+      <!-- Mode control -->
+      <div class="card" style="padding:20px;">
+        <div class="sec-label" style="margin-bottom:14px;">Operating Mode</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <button id="tc-btn-s" onclick="switchMode('SECURE')"
+            style="padding:16px;border-radius:10px;border:2px solid #10b981;background:rgba(16,185,129,0.05);text-align:left;cursor:pointer;transition:all 0.15s;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <span class="ms" style="color:#10b981;font-size:18px;">shield</span>
+              <span style="font-size:13px;font-weight:600;color:#e8e5f5;">SECURE</span>
+            </div>
+            <div class="mono" style="font-size:10px;color:#aba3c7;line-height:1.4;">Full safety controls active. LLM protected against adversarial prompts.</div>
+          </button>
+          <button id="tc-btn-v" onclick="switchMode('VULNERABLE')"
+            style="padding:16px;border-radius:10px;border:2px solid #2d2945;text-align:left;cursor:pointer;transition:all 0.15s;background:transparent;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <span class="ms" style="color:#7e789a;font-size:18px;">gpp_bad</span>
+              <span style="font-size:13px;font-weight:600;color:#e8e5f5;">VULNERABLE</span>
+            </div>
+            <div class="mono" style="font-size:10px;color:#aba3c7;line-height:1.4;">Intentionally weakened for testing. Do not use in production.</div>
+          </button>
+        </div>
+        <div class="mono" style="font-size:11px;color:#7e789a;">
+          Current mode: <span id="tc-cur-mode" style="color:#e8e5f5;font-weight:600;">Loading…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ REPORTS ═══ -->
+    <div id="page-reports" class="page" style="padding:28px;max-width:1000px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
+        <div>
+          <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.5px;margin:0 0 4px;">Reports</h1>
+          <p style="font-size:13px;color:#aba3c7;margin:0;">Security assessment from the current scan session.</p>
+        </div>
+        <button id="export-btn" onclick="exportReport()" class="btn-ghost" style="display:none;">
+          <span class="ms" style="font-size:18px;">download</span>Export .txt
+        </button>
+      </div>
+
+      <div id="rpt-empty" class="card" style="padding:64px 24px;text-align:center;">
+        <span class="ms" style="color:#7e789a;font-size:48px;display:block;margin-bottom:12px;">assessment</span>
+        <h2 style="font-size:18px;font-weight:600;margin:0 0 8px;">No Reports Available</h2>
+        <p style="font-size:13px;color:#7e789a;margin:0 0 18px;">Complete a scan to generate a report.</p>
+        <button onclick="navigate('run-scan')" class="btn-primary">Run a Scan</button>
+      </div>
+
+      <div id="rpt-content" style="display:none;display:flex;flex-direction:column;gap:16px;">
+        <div class="card" style="padding:20px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <div style="width:38px;height:38px;border-radius:8px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;">
+              <span class="ms" style="color:#10b981;font-size:18px;">assessment</span>
+            </div>
+            <div>
+              <div style="font-size:14px;font-weight:600;color:#e8e5f5;">LLMGuard Security Assessment</div>
+              <div id="rpt-info" class="mono" style="font-size:10px;color:#aba3c7;margin-top:2px;"></div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;" class="stats-grid">
+            <div style="background:#191629;border:1px solid #2d2945;border-radius:8px;padding:12px;"><div class="sec-label" style="margin-bottom:4px;">Total</div><div id="rpt-total" style="font-size:22px;font-weight:700;color:#e8e5f5;"></div></div>
+            <div style="background:#191629;border:1px solid #2d2945;border-radius:8px;padding:12px;"><div class="sec-label" style="margin-bottom:4px;">Safe</div><div id="rpt-safe" style="font-size:22px;font-weight:700;color:#10b981;"></div></div>
+            <div style="background:#191629;border:1px solid #2d2945;border-radius:8px;padding:12px;"><div class="sec-label" style="margin-bottom:4px;">Vulnerable</div><div id="rpt-vuln" style="font-size:22px;font-weight:700;color:#f43f5e;"></div></div>
+            <div style="background:#191629;border:1px solid #2d2945;border-radius:8px;padding:12px;"><div class="sec-label" style="margin-bottom:4px;">Errors</div><div id="rpt-err" style="font-size:22px;font-weight:700;color:#f59e0b;"></div></div>
+          </div>
+        </div>
+        <div class="card" style="overflow:hidden;">
+          <div class="card-header"><span class="sec-label">Vulnerability Findings</span></div>
+          <div id="rpt-findings"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SETTINGS ═══ -->
+    <div id="page-settings" class="page" style="padding:28px;max-width:680px;">
+      <div style="margin-bottom:24px;">
+        <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.5px;margin:0 0 4px;">Settings</h1>
+        <p style="font-size:13px;color:#aba3c7;margin:0;">Configure LLMGuard application preferences.</p>
+      </div>
+      <div class="card" style="overflow:hidden;">
+        <div style="padding:20px;border-bottom:1px solid #2d2945;">
+          <div class="sec-label" style="margin-bottom:14px;">General</div>
+          <div style="margin-bottom:14px;">
+            <label style="display:block;font-size:12px;font-weight:600;color:#e8e5f5;margin-bottom:6px;">LLMGuard API URL</label>
+            <input id="settings-api" type="text" value="http://127.0.0.1:8001" class="inp">
+            <p class="mono" style="font-size:10px;color:#7e789a;margin:5px 0 0;">Where the LLMGuard server.py is running.</p>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#e8e5f5;margin-bottom:6px;">TechMart Target URL</label>
+            <input type="text" value="http://127.0.0.1:8000" readonly class="inp" style="color:#7e789a;cursor:not-allowed;background:#0e0d15;">
+            <p class="mono" style="font-size:10px;color:#7e789a;margin:5px 0 0;">Configured in target_client.py — change there.</p>
+          </div>
+        </div>
+        <div style="padding:20px;border-bottom:1px solid #2d2945;">
+          <div class="sec-label" style="margin-bottom:14px;">About</div>
+          <div class="mono" style="font-size:11px;color:#aba3c7;display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;justify-content:space-between;"><span style="color:#7e789a;">Project</span><span style="color:#e8e5f5;font-weight:600;">LLMGuard</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:#7e789a;">Version</span><span>1.0.0</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:#7e789a;">Target</span><span>TechMart Customer Support AI</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:#7e789a;">Evaluator</span><span>Pattern-based canary detection</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:#7e789a;">Attack Suite</span><span>18 tests · 8 categories</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:#7e789a;">Canary Tokens</span><span>TM-SECRET-938472 · TM-ADMIN-7419</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ════════════════════════════════════════════════ FINDING MODAL -->
+<div id="modal-overlay" onclick="handleModalClick(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid #2d2945;position:sticky;top:0;background:#151322;z-index:10;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span id="modal-icon" class="ms" style="color:#f43f5e;font-size:22px;">gpp_maybe</span>
+        <div>
+          <div id="modal-title" style="font-size:15px;font-weight:600;color:#e8e5f5;"></div>
+          <div id="modal-sub" class="mono" style="font-size:10px;color:#aba3c7;margin-top:2px;"></div>
+        </div>
+      </div>
+      <button onclick="closeModal()" style="background:none;border:none;color:#aba3c7;cursor:pointer;">
+        <span class="ms">close</span>
+      </button>
+    </div>
+    <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+      <div id="modal-badge"></div>
+      <div>
+        <div class="sec-label" style="margin-bottom:6px;">Objective</div>
+        <div id="modal-obj" style="font-size:13px;color:#aba3c7;line-height:1.6;"></div>
+      </div>
+      <div>
+        <div class="sec-label" style="margin-bottom:6px;">Attack Prompt</div>
+        <div id="modal-prompt" class="code-block"></div>
+      </div>
+      <div>
+        <div class="sec-label" style="margin-bottom:6px;">Target Response</div>
+        <div id="modal-resp" class="code-block" style="max-height:180px;overflow-y:auto;"></div>
+      </div>
+      <div>
+        <div class="sec-label" style="margin-bottom:6px;">Detection Reason</div>
+        <div id="modal-det" class="code-block"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════ RESPONSIVE STYLES -->
+<style>
+  @media (max-width: 1024px) {
+    .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
+    .chart-grid { grid-template-columns: 1fr !important; }
+  }
+  @media (max-width: 768px) {
+    #mob-menu-btn { display: block !important; }
+    .stats-grid { grid-template-columns: 1fr 1fr !important; }
+  }
+  @media (max-width: 500px) {
+    .stats-grid { grid-template-columns: 1fr !important; }
+  }
+  /* Results tab style */
+  .res-tab { background:none;border:none;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;color:#aba3c7;transition:all 0.15s; }
+  .res-tab.active { background:#10b981;color:#003820; }
+</style>
+
+<!-- ════════════════════════════════════════════════ JAVASCRIPT -->
+<script>
+  // ─────────────────────────────────────────── CONFIG
+  const API = 'http://127.0.0.1:8001';
+  let currentPage = 'dashboard';
+  let pollTimer = null;
+  let allAttacks = [];
+  let tcAllAttacks = [];
+  let scanResults = null;
+  let resFilter = 'all';
+  let resultMap = {};
+
+  // ─────────────────────────────────────────── API SERVICE
+  const api = {
+    async get(path) {
+      const r = await fetch(API + path);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    },
+    async post(path, body) {
+      const r = await fetch(API + path, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+      if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.detail || 'HTTP ' + r.status); }
+      return r.json();
+    }
+  };
+
+  // ─────────────────────────────────────────── BADGE
+  function badge(verdict) {
+    const cls = {SAFE:'badge-safe',VULNERABLE:'badge-vulnerable',TARGET_ERROR:'badge-error'};
+    const lbl = {SAFE:'SAFE',VULNERABLE:'VULNERABLE',TARGET_ERROR:'ERROR'};
+    return `<span class="badge ${cls[verdict]||'badge-error'}">${lbl[verdict]||verdict}</span>`;
+  }
+
+  // ─────────────────────────────────────────── ROUTER
+  function navigate(page) {
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    const el = document.getElementById('page-' + page);
+    if (el) el.classList.add('active');
+    const nav = document.querySelector(`.nav-item[data-page="${page}"]`);
+    if (nav) nav.classList.add('active');
+    currentPage = page;
+    closeSidebar();
+    pageLoad(page);
+  }
+
+  async function pageLoad(page) {
+    const map = { dashboard:loadDashboard, 'run-scan':loadRunScan, 'live-scan':loadLiveScan,
+                  results:loadResults, 'test-cases':loadTestCases, 'target-config':loadTargetConfig,
+                  reports:loadReports };
+    if (map[page]) await map[page]().catch(e=>console.warn(page, e));
+  }
+
+  // ─────────────────────────────────────────── STATUS
+  async function refreshStatus() {
+    try {
+      const s = await api.get('/api/status');
+      // Sidebar
+      const dot = document.getElementById('sb-dot');
+      const txt = document.getElementById('sb-status');
+      dot.style.background = s.target_online ? '#10b981' : '#f43f5e';
+      txt.textContent = s.target_online ? 'Gateway: Operational' : 'Target: Offline';
+      txt.style.color = s.target_online ? '#10b981' : '#f43f5e';
+      // Mode badge
+      const mb = document.getElementById('sb-mode');
+      const mbd = document.getElementById('sb-mode-badge');
+      mb.textContent = s.target_mode || '—';
+      mbd.textContent = s.target_mode || '--';
+      mbd.className = 'badge ' + (s.target_mode==='SECURE'?'badge-safe':s.target_mode==='VULNERABLE'?'badge-vulnerable':'');
+      // Header
+      const hd = document.getElementById('hdr-dot');
+      const hm = document.getElementById('hdr-mode');
+      hm.textContent = s.target_mode || '--';
+      hd.style.background = s.target_mode==='SECURE'?'#10b981':s.target_mode==='VULNERABLE'?'#f43f5e':'#7e789a';
+      // Dashboard dot
+      const dc = document.getElementById('dash-conn-dot');
+      const dl = document.getElementById('dash-conn-label');
+      if (dc && dl) { dc.style.background = s.target_online?'#10b981':'#f43f5e'; dl.textContent = s.target_online?(s.target_mode||'Online'):'Offline'; dl.style.color = s.target_online?'#10b981':'#f43f5e'; }
+    } catch(e) {
+      document.getElementById('sb-status').textContent = 'LLMGuard: Offline';
+      document.getElementById('sb-dot').style.background = '#f43f5e';
+    }
+  }
+
+  // ─────────────────────────────────────────── DASHBOARD
+  async function loadDashboard() {
+    await refreshStatus();
+    try {
+      const data = await api.get('/api/scan/results');
+      scanResults = data;
+      if (!data.results || data.results.length === 0) return;
+      buildResultMap(data.results);
+      const { summary:sm, results, category_stats:cs, vulnerable_cases:vc, scan_id, completed_at } = data;
+      const total = results.length;
+
+      // Stats
+      setText('d-total', total);
+      setText('d-safe', sm.SAFE, '#10b981');
+      setText('d-vuln', sm.VULNERABLE, '#f43f5e');
+      setText('d-err', sm.TARGET_ERROR, '#f59e0b');
+
+      // Donut
+      show('d-chart'); hide('d-no-data');
+      const pct = n => total > 0 ? parseFloat((n/total*100).toFixed(1)) : 0;
+      const sp = pct(sm.SAFE), vp = pct(sm.VULNERABLE), ep = pct(sm.TARGET_ERROR);
+      setArc('arc-safe', sp, 0);
+      setArc('arc-vuln', vp, sp);
+      setArc('arc-err', ep, sp+vp);
+      setText('arc-center', sm.SAFE);
+      setText('leg-safe', `${sm.SAFE} (${sp}%)`);
+      setText('leg-vuln', `${sm.VULNERABLE} (${vp}%)`);
+      setText('leg-err', `${sm.TARGET_ERROR} (${ep}%)`);
+      const meta = document.getElementById('d-scan-meta');
+      meta.textContent = `Scan #${scan_id||'—'} · ${completed_at ? fmtDate(completed_at) : '—'}`;
+
+      // Findings
+      const fd = document.getElementById('d-findings');
+      if (vc && vc.length > 0) {
+        fd.innerHTML = vc.map(f => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 20px;border-bottom:1px solid #2d2945;cursor:pointer;transition:background 0.1s;" onmouseover="this.style.background='#1e1b32'" onmouseout="this.style.background=''" onclick="openById('${f.id}')">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span class="mono" style="font-size:11px;color:#10b981;font-weight:700;width:70px;flex-shrink:0;">${f.id}</span>
+              <div><div style="font-size:13px;font-weight:600;color:#e8e5f5;">${f.name}</div><div class="mono" style="font-size:10px;color:#7e789a;">${f.category}</div></div>
+            </div>
+            ${badge('VULNERABLE')}
+          </div>`).join('');
+      } else {
+        fd.innerHTML = '<div style="text-align:center;padding:40px 24px;"><span class="ms" style="color:#10b981;font-size:32px;display:block;margin-bottom:8px;">shield_with_heart</span><p class="mono" style="font-size:11px;color:#7e789a;margin:0;">No vulnerabilities detected.</p></div>';
+      }
+
+      // Category
+      if (cs && Object.keys(cs).length > 0) {
+        show('d-cat-section');
+        document.getElementById('d-cat-tbody').innerHTML = Object.entries(cs).map(([cat,s]) =>
+          `<tr class="tbl-row"><td style="color:#e8e5f5;">${cat}</td><td style="text-align:right;color:#aba3c7;">${s.total}</td><td style="text-align:right;color:#10b981;">${s.SAFE}</td><td style="text-align:right;${s.VULNERABLE>0?'color:#f43f5e;font-weight:700;':'color:#aba3c7;'}">${s.VULNERABLE}</td><td style="text-align:right;${s.TARGET_ERROR>0?'color:#f59e0b;':'color:#aba3c7;'}">${s.TARGET_ERROR}</td></tr>`
+        ).join('');
+      }
+    } catch(e) { /* No results yet — empty states already shown */ }
+  }
+
+  // ─────────────────────────────────────────── RUN SCAN
+  async function loadRunScan() {
+    // Load categories
+    try {
+      const data = await api.get('/api/attacks');
+      allAttacks = data.attacks;
+      const cats = [...new Set(data.attacks.map(a=>a.category))];
+      document.getElementById('cat-checkboxes').innerHTML = cats.map(cat => {
+        const n = data.attacks.filter(a=>a.category===cat).length;
+        return `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#191629;border:1px solid #2d2945;border-radius:8px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(16,185,129,0.4)'" onmouseout="this.style.borderColor='#2d2945'">
+          <input type="checkbox" class="cat-cb" value="${cat}" checked>
+          <span style="font-size:12px;color:#e8e5f5;font-weight:500;flex:1;">${cat}</span>
+          <span class="mono" style="font-size:10px;color:#7e789a;">${n} tests</span>
+        </label>`;
+      }).join('');
+    } catch(e) { document.getElementById('cat-checkboxes').innerHTML = '<div class="mono" style="color:#f43f5e;font-size:11px;grid-column:1/-1;">Failed to load attacks: ' + e.message + '</div>'; }
+
+    // Target status
+    try {
+      const m = await api.get('/api/target/mode');
+      document.getElementById('rs-tdot').style.background = m.online ? '#10b981' : '#f43f5e';
+      document.getElementById('rs-tlabel').textContent = m.online ? `Online · ${m.mode}` : 'Target Offline';
+      document.getElementById('rs-tlabel').style.color = m.online ? '#10b981' : '#f43f5e';
+    } catch(e) {}
+
+    // Mode card toggle
+    document.querySelectorAll('input[name="scan-mode"]').forEach(r => r.addEventListener('change', updateModeCards));
+    updateModeCards();
+  }
+
+  function updateModeCards() {
+    const mode = document.querySelector('input[name="scan-mode"]:checked')?.value;
+    const sc = document.getElementById('mode-card-secure');
+    const vc = document.getElementById('mode-card-vuln');
+    if (mode === 'SECURE') {
+      sc.style.borderColor = '#10b981'; sc.style.background = 'rgba(16,185,129,0.05)';
+      vc.style.borderColor = '#2d2945'; vc.style.background = 'transparent';
+    } else {
+      vc.style.borderColor = '#f43f5e'; vc.style.background = 'rgba(244,63,94,0.05)';
+      sc.style.borderColor = '#2d2945'; sc.style.background = 'transparent';
+    }
+  }
+
+  function selectAll() { document.querySelectorAll('.cat-cb').forEach(c=>c.checked=true); }
+  function clearAll()  { document.querySelectorAll('.cat-cb').forEach(c=>c.checked=false); }
+
+  async function startScan() {
+    const mode = document.querySelector('input[name="scan-mode"]:checked')?.value;
+    const cats = [...document.querySelectorAll('.cat-cb:checked')].map(c=>c.value);
+    if (!cats.length) { alert('Select at least one attack category.'); return; }
+
+    const btn = document.getElementById('run-btn');
+    const msg = document.getElementById('run-msg');
+    btn.disabled = true; msg.textContent = 'Starting scan…';
+
+    try {
+      await api.post('/api/scan/start', { mode, categories: cats.length === [...new Set(allAttacks.map(a=>a.category))].length ? null : cats });
+      msg.textContent = 'Scan started! Navigating to Live Scan…';
+      setTimeout(() => navigate('live-scan'), 700);
+    } catch(e) {
+      msg.textContent = 'Error: ' + e.message;
+      btn.disabled = false;
+    }
+  }
+
+  // ─────────────────────────────────────────── LIVE SCAN
+  async function loadLiveScan() {
+    await updateLive();
+  }
+
+  async function updateLive() {
+    try {
+      const st = await api.get('/api/scan/status');
+      const badge = document.getElementById('live-badge');
+      const pl = document.getElementById('live-prog-label');
+      const pf = document.getElementById('live-prog-fill');
+      const sid = document.getElementById('live-scan-id');
+
+      sid.textContent = st.scan_id ? 'Scan #' + st.scan_id : '';
+      const pct = st.total > 0 ? (st.completed/st.total*100) : 0;
+      pl.textContent = st.status === 'idle' ? '—' : `${st.completed} / ${st.total} tests`;
+      pf.style.width = pct + '%';
+      setText('lv-safe', (st.summary||{}).SAFE||0);
+      setText('lv-vuln', (st.summary||{}).VULNERABLE||0);
+      setText('lv-err', (st.summary||{}).TARGET_ERROR||0);
+
+      const statusStyles = {
+        idle:      {text:'No scan running', bg:'#191629', color:'#7e789a', border:'#2d2945'},
+        running:   {text:`Scanning… ${st.completed}/${st.total}`, bg:'rgba(16,185,129,0.1)', color:'#10b981', border:'rgba(16,185,129,0.3)'},
+        completed: {text:'Scan Complete', bg:'rgba(16,185,129,0.1)', color:'#10b981', border:'rgba(16,185,129,0.3)'},
+        error:     {text:'Scan Error', bg:'rgba(244,63,94,0.1)', color:'#f43f5e', border:'rgba(244,63,94,0.3)'},
+      };
+      const ss = statusStyles[st.status] || statusStyles.idle;
+      badge.textContent = ss.text;
+      badge.style.background = ss.bg; badge.style.color = ss.color; badge.style.borderColor = ss.border;
+
+      const cur = document.getElementById('live-cur');
+      if (st.current_attack && st.status === 'running') {
+        cur.style.display = 'block';
+        setText('live-cur-id', st.current_attack.id);
+        setText('live-cur-name', st.current_attack.name);
+      } else { cur.style.display = 'none'; }
+
+      await updateLiveList();
+    } catch(e) {}
+  }
+
+  async function updateLiveList() {
+    try {
+      const data = await api.get('/api/scan/results');
+      scanResults = data;
+      if (data.results && data.results.length > 0) buildResultMap(data.results);
+      const list = document.getElementById('live-list');
+      const empty = document.getElementById('live-empty');
+      if (!data.results || data.results.length === 0) { empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      list.innerHTML = [...data.results].reverse().map(r => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 20px;border-bottom:1px solid #2d2945;cursor:pointer;transition:background 0.1s;" onmouseover="this.style.background='#1e1b32'" onmouseout="this.style.background=''" onclick="openById('${r.id}')">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span class="mono" style="font-size:11px;color:#10b981;font-weight:700;width:70px;flex-shrink:0;">${r.id}</span>
+            <div><div style="font-size:13px;font-weight:600;color:#e8e5f5;">${r.name}</div><div class="mono" style="font-size:10px;color:#7e789a;">${r.category}</div></div>
+          </div>
+          ${badge(r.verdict)}
+        </div>`).join('') + empty.outerHTML.replace('style="', 'style="display:none;');
+    } catch(e) {}
+  }
+
+  // ─────────────────────────────────────────── RESULTS
+  async function loadResults() {
+    try {
+      const data = await api.get('/api/scan/results');
+      scanResults = data;
+      if (data.results && data.results.length > 0) buildResultMap(data.results);
+      renderResults(data);
+    } catch(e) {}
+  }
+
+  function renderResults(data) {
+    const hasData = data.results && data.results.length > 0;
+    toggle('res-empty', !hasData);
+    toggleDisplay('res-summary', hasData, 'grid');
+    toggleDisplay('res-cat', hasData && data.category_stats && Object.keys(data.category_stats).length > 0);
+    toggleDisplay('res-table-section', hasData);
+    if (!hasData) return;
+
+    const { summary:sm, results, category_stats:cs, scan_id, completed_at, mode } = data;
+    const si = document.getElementById('res-scan-info');
+    si.textContent = `Scan #${scan_id||'—'} · ${mode||''} · ${completed_at?fmtDate(completed_at):'—'}`;
+    setText('rs-total', results.length); setText('rs-safe', sm.SAFE, '#10b981');
+    setText('rs-vuln', sm.VULNERABLE, '#f43f5e'); setText('rs-err', sm.TARGET_ERROR, '#f59e0b');
+
+    if (cs) {
+      document.getElementById('res-cat-tbody').innerHTML = Object.entries(cs).map(([cat,s]) =>
+        `<tr class="tbl-row"><td style="color:#e8e5f5;">${cat}</td><td style="text-align:right;color:#aba3c7;">${s.total}</td><td style="text-align:right;color:#10b981;">${s.SAFE}</td><td style="text-align:right;${s.VULNERABLE>0?'color:#f43f5e;font-weight:700;':'color:#aba3c7;'}">${s.VULNERABLE}</td><td style="text-align:right;${s.TARGET_ERROR>0?'color:#f59e0b;':'color:#aba3c7;'}">${s.TARGET_ERROR}</td></tr>`
+      ).join('');
+    }
+    renderResTable(results);
+  }
+
+  function renderResTable(results) {
+    const filtered = resFilter === 'all' ? results : results.filter(r=>r.verdict===resFilter);
+    document.getElementById('res-tbody').innerHTML = filtered.length === 0
+      ? '<tr><td colspan="5" style="text-align:center;padding:32px;color:#7e789a;" class="mono">No results match the selected filter.</td></tr>'
+      : filtered.map(r => `<tr class="tbl-row" onclick="openById('${r.id}')">
+          <td class="mono" style="color:#10b981;font-weight:700;">${r.id}</td>
+          <td style="color:#e8e5f5;font-weight:500;">${r.category}</td>
+          <td style="color:#aba3c7;">${r.name}</td>
+          <td class="mono" style="color:#7e789a;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;">${(r.response||'').substring(0,80)}…</td>
+          <td style="text-align:right;">${badge(r.verdict)}</td>
+        </tr>`).join('');
+  }
+
+  function setResFilter(f, el) {
+    resFilter = f;
+    document.querySelectorAll('.res-tab').forEach(t=>t.classList.remove('active'));
+    el.classList.add('active');
+    if (scanResults && scanResults.results) renderResTable(scanResults.results);
+  }
+
+  // ─────────────────────────────────────────── TEST CASES
+  async function loadTestCases() {
+    try {
+      const data = await api.get('/api/attacks');
+      tcAllAttacks = data.attacks;
+      const cats = [...new Set(data.attacks.map(a=>a.category))];
+      const sel = document.getElementById('tc-cat');
+      sel.innerHTML = '<option value="">All Categories</option>' + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+      renderTC(tcAllAttacks);
+    } catch(e) {
+      document.getElementById('tc-list').innerHTML = `<div style="text-align:center;padding:48px;color:#f43f5e;" class="mono">Failed to load: ${e.message}</div>`;
+    }
+  }
+
+  function filterTC() {
+    const q = document.getElementById('tc-search').value.toLowerCase();
+    const cat = document.getElementById('tc-cat').value;
+    renderTC(tcAllAttacks.filter(a => {
+      const mq = !q || a.id.toLowerCase().includes(q) || a.name.toLowerCase().includes(q) || a.objective.toLowerCase().includes(q) || a.prompt.toLowerCase().includes(q);
+      const mc = !cat || a.category === cat;
+      return mq && mc;
+    }));
+  }
+
+  function renderTC(attacks) {
+    const el = document.getElementById('tc-list');
+    if (!attacks.length) { el.innerHTML = '<div style="text-align:center;padding:48px;color:#7e789a;" class="mono">No test cases match your search.</div>'; return; }
+    el.innerHTML = attacks.map(a => `
+      <div class="card" style="padding:16px;margin-bottom:10px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(126,120,154,0.5)'" onmouseout="this.style.borderColor='#2d2945'">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="mono" style="font-size:11px;color:#10b981;font-weight:700;background:rgba(16,185,129,0.1);padding:3px 8px;border-radius:4px;">${a.id}</span>
+            <span style="font-size:13px;font-weight:600;color:#e8e5f5;">${a.name}</span>
+          </div>
+          <span class="mono" style="font-size:9px;color:#7e789a;padding:3px 8px;border-radius:4px;border:1px solid #2d2945;white-space:nowrap;">${a.category}</span>
+        </div>
+        <p style="font-size:12px;color:#aba3c7;line-height:1.5;margin:0 0 10px;">${a.objective}</p>
+        <div class="code-block" style="font-size:10px;line-height:1.5;max-height:60px;overflow:hidden;position:relative;">
+          ${a.prompt}
+          <div style="position:absolute;bottom:0;left:0;right:0;height:20px;background:linear-gradient(transparent,#0e0d15);"></div>
+        </div>
+      </div>`).join('');
+  }
+
+  // ─────────────────────────────────────────── TARGET CONFIG
+  async function loadTargetConfig() { await testConn(); }
+
+  async function testConn() {
+    const dot = document.getElementById('tc-conn-dot');
+    const lbl = document.getElementById('tc-conn-label');
+    const det = document.getElementById('tc-conn-detail');
+    dot.style.background = '#f59e0b'; lbl.textContent = 'Testing…'; det.textContent = '';
+    try {
+      const m = await api.get('/api/target/mode');
+      if (m.online) {
+        dot.style.background = '#10b981';
+        lbl.textContent = 'Connected'; lbl.style.color = '#10b981';
+        det.textContent = `http://127.0.0.1:8000 · Mode: ${m.mode}`;
+        setText('tc-cur-mode', m.mode);
+        updateModeBtns(m.mode);
+      } else throw new Error('offline');
+    } catch(e) {
+      dot.style.background = '#f43f5e';
+      lbl.textContent = 'Connection Failed'; lbl.style.color = '#f43f5e';
+      det.textContent = 'TechMart Support target is not reachable';
+    }
+  }
+
+  function updateModeBtns(mode) {
+    const sb = document.getElementById('tc-btn-s');
+    const vb = document.getElementById('tc-btn-v');
+    if (mode === 'SECURE') {
+      sb.style.borderColor='#10b981'; sb.style.background='rgba(16,185,129,0.05)';
+      vb.style.borderColor='#2d2945'; vb.style.background='transparent';
+    } else {
+      vb.style.borderColor='#f43f5e'; vb.style.background='rgba(244,63,94,0.05)';
+      sb.style.borderColor='#2d2945'; sb.style.background='transparent';
+    }
+  }
+
+  async function switchMode(mode) {
+    const el = document.getElementById('tc-cur-mode');
+    el.textContent = 'Switching…';
+    try {
+      await api.post('/api/target/mode', {mode});
+      el.textContent = mode;
+      updateModeBtns(mode);
+      await refreshStatus();
+    } catch(e) { el.textContent = 'Error: ' + e.message; }
+  }
+
+  // ─────────────────────────────────────────── REPORTS
+  async function loadReports() {
+    try {
+      const data = await api.get('/api/scan/results');
+      scanResults = data;
+      if (data.results && data.results.length > 0) buildResultMap(data.results);
+      const hasData = data.results && data.results.length > 0;
+      toggle('rpt-empty', !hasData);
+      document.getElementById('rpt-content').style.display = hasData ? 'flex' : 'none';
+      document.getElementById('export-btn').style.display = hasData ? 'inline-flex' : 'none';
+      if (!hasData) return;
+
+      const { summary:sm, results, vulnerable_cases:vc, scan_id, completed_at, mode } = data;
+      document.getElementById('rpt-info').textContent = `Scan #${scan_id||'—'} · ${mode||''} · ${completed_at?fmtDate(completed_at):'—'}`;
+      setText('rpt-total', results.length); setText('rpt-safe', sm.SAFE, '#10b981');
+      setText('rpt-vuln', sm.VULNERABLE, '#f43f5e'); setText('rpt-err', sm.TARGET_ERROR, '#f59e0b');
+
+      const fl = document.getElementById('rpt-findings');
+      if (vc && vc.length > 0) {
+        fl.innerHTML = vc.map((f,i) => `
+          <div style="padding:16px 20px;border-bottom:1px solid #2d2945;cursor:pointer;transition:background 0.1s;" onmouseover="this.style.background='#1e1b32'" onmouseout="this.style.background=''" onclick="openById('${f.id}')">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <span class="mono" style="font-size:14px;color:#f43f5e;font-weight:700;flex-shrink:0;">[${i+1}]</span>
+              <div style="flex:1;">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+                  <span class="mono" style="font-size:11px;color:#10b981;font-weight:700;">${f.id}</span>
+                  <span class="mono" style="font-size:9px;color:#7e789a;">${f.category}</span>
+                </div>
+                <div style="font-size:13px;font-weight:600;color:#e8e5f5;margin-bottom:4px;">${f.name}</div>
+                <div class="mono" style="font-size:10px;color:#f43f5e;">Protected information was detected in the target response.</div>
+                ${f.detail ? `<div class="mono" style="font-size:10px;color:#aba3c7;margin-top:2px;">${f.detail}</div>` : ''}
+              </div>
+              ${badge('VULNERABLE')}
+            </div>
+          </div>`).join('');
+      } else {
+        fl.innerHTML = '<div style="text-align:center;padding:40px;"><span class="ms" style="color:#10b981;font-size:36px;display:block;margin-bottom:8px;">shield_with_heart</span><p class="mono" style="font-size:11px;color:#10b981;">No vulnerabilities detected.</p></div>';
+      }
+    } catch(e) {
+      toggle('rpt-empty', true);
+      document.getElementById('rpt-content').style.display = 'none';
+    }
+  }
+
+  function exportReport() {
+    if (!scanResults || !scanResults.results) return;
+    const d = scanResults;
+    const lines = [
+      '============================================================',
+      '                 LLMGuard Security Assessment',
+      '============================================================',
+      '',`Target: TechMart Customer Support AI`,
+      `Scan ID: ${d.scan_id||'—'}`,`Mode: ${d.mode||'—'}`,
+      `Date: ${d.completed_at?fmtDate(d.completed_at):'—'}`,
+      '',`Total Tests: ${d.results.length}`,'',
+      'Results','------------------------------------------------------------',
+      `SAFE          ${d.summary.SAFE}`,
+      `VULNERABLE    ${d.summary.VULNERABLE}`,
+      `TARGET_ERROR  ${d.summary.TARGET_ERROR}`,
+      '------------------------------------------------------------','',
+      'Category Summary','------------------------------------------------------------',
+      ...Object.entries(d.category_stats||{}).map(([c,s])=>`${c.padEnd(46)} ${s.total} tests   ${s.VULNERABLE} vulnerable`),
+      '------------------------------------------------------------',
+    ];
+    if (d.vulnerable_cases && d.vulnerable_cases.length > 0) {
+      lines.push('','============================================================','                 VULNERABILITY FINDINGS','============================================================','');
+      d.vulnerable_cases.forEach((f,i)=>{
+        lines.push(`[${i+1}] ${f.id}`,`Category: ${f.category}`,`Attack: ${f.name}`,'','Reason:','Protected information was detected in the target response.',f.detail?`Detail: ${f.detail}`:'','');
+      });
+      lines.push('============================================================');
+    }
+    const blob = new Blob([lines.join('\n')], {type:'text/plain'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `llmguard-report-${d.scan_id||'scan'}.txt`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ─────────────────────────────────────────── MODAL
+  function buildResultMap(results) {
+    resultMap = {};
+    results.forEach(r => resultMap[r.id] = r);
+  }
+
+  function openById(id) {
+    if (!resultMap[id] && scanResults && scanResults.results) buildResultMap(scanResults.results);
+    const r = resultMap[id];
+    if (!r) return;
+    openModal(r);
+  }
+
+  function openModal(r) {
+    const iconMap = {SAFE:'verified_user', VULNERABLE:'gpp_maybe', TARGET_ERROR:'error'};
+    const colorMap = {SAFE:'#10b981', VULNERABLE:'#f43f5e', TARGET_ERROR:'#f59e0b'};
+    const icon = document.getElementById('modal-icon');
+    icon.textContent = iconMap[r.verdict] || 'info';
+    icon.style.color = colorMap[r.verdict] || '#7e789a';
+    document.getElementById('modal-title').textContent = `${r.id} — ${r.name}`;
+    document.getElementById('modal-sub').textContent = r.category;
+    document.getElementById('modal-badge').innerHTML = badge(r.verdict);
+    document.getElementById('modal-obj').textContent = r.objective;
+    document.getElementById('modal-prompt').textContent = r.prompt;
+    document.getElementById('modal-resp').textContent = r.response;
+    const det = document.getElementById('modal-det');
+    det.textContent = r.verdict === 'SAFE' ? 'No protected canary tokens or transformations detected in response.'
+      : r.verdict === 'VULNERABLE' ? (r.detail || 'Protected information was detected in the target response.')
+      : (r.detail || 'Target API returned an error or failed to respond.');
+    const detColors = {SAFE:'rgba(16,185,129,0.1)', VULNERABLE:'rgba(136,19,55,0.3)', TARGET_ERROR:'rgba(180,83,9,0.2)'};
+    det.style.background = detColors[r.verdict] || detColors.TARGET_ERROR;
+    det.style.borderColor = colorMap[r.verdict] + '55';
+    det.style.color = colorMap[r.verdict] || '#f59e0b';
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+  function handleModalClick(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // ─────────────────────────────────────────── MOBILE
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('mob-overlay').classList.toggle('open');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('mob-overlay').classList.remove('open');
+  }
+
+  // ─────────────────────────────────────────── SEARCH
+  function globalSearch() {
+    const q = document.getElementById('global-search').value;
+    if (!q.trim()) return;
+    if (currentPage !== 'test-cases') navigate('test-cases');
+    else { document.getElementById('tc-search').value = q; filterTC(); }
+    setTimeout(() => { const el = document.getElementById('tc-search'); if(el){el.value=q;filterTC();} }, 200);
+  }
+
+  // ─────────────────────────────────────────── DOM UTILS
+  function setText(id, val, color) { const el = document.getElementById(id); if(el){el.textContent=val;if(color)el.style.color=color;} }
+  function show(id) { const el = document.getElementById(id); if(el) el.style.display='flex'; }
+  function hide(id) { const el = document.getElementById(id); if(el) el.style.display='none'; }
+  function toggle(id, hidden) { const el = document.getElementById(id); if(el) el.style.display = hidden?'none':''; }
+  function toggleDisplay(id, show, disp='block') { const el=document.getElementById(id); if(el) el.style.display=show?disp:'none'; }
+  function setArc(id, pct, offset) {
+    const el = document.getElementById(id);
+    if (el) { el.setAttribute('stroke-dasharray', `${pct} ${100-pct}`); el.setAttribute('stroke-dashoffset', `-${offset}`); }
+  }
+  function fmtDate(iso) { try { return new Date(iso).toLocaleString(); } catch(e) { return iso; } }
+
+  // ─────────────────────────────────────────── POLLING
+  function startPoll() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(async () => {
+      if (currentPage === 'live-scan') await updateLive().catch(()=>{});
+    }, 2000);
+  }
+
+  // ─────────────────────────────────────────── INIT
+  async function init() {
+    await refreshStatus();
+    setInterval(refreshStatus, 10000);
+    startPoll();
+    await loadDashboard().catch(()=>{});
+  }
+
+  init();
+</script>
+
+</body>
+</html>

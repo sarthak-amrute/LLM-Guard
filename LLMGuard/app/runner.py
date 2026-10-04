@@ -145,7 +145,7 @@ def run_security_tests(target_mode=None):
         cat = attack["category"]
         category_stats[cat]["total"] += 1
 
-        response = send_attack(attack["prompt"])
+        response, _latency_ms = send_attack(attack["prompt"])
         verdict, detail = evaluate_response_details(response)
 
         results_summary[verdict] += 1
