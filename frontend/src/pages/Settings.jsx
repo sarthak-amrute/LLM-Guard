@@ -77,7 +77,7 @@ export default function Settings() {
               label="Target Connectivity"
               value={status?.target_online ? 'Reachable' : 'Unreachable'}
               mono
-              color={status?.target_online ? 'text-tertiary' : 'text-amber-400'}
+              color={status?.target_online ? 'text-emerald-800' : 'text-amber-800'}
             />
             <StatusRow
               label="Target Active Mode"

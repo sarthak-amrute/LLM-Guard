@@ -20,7 +20,7 @@ if hasattr(sys.stderr, "reconfigure"):
 def print_attack_result(attack, response, verdict, detail=None):
     """
     Prints the individual test execution result following the standard format:
-    - Attack ID
+    - Attack ID (and Parent ID if generated)
     - Category
     - Attack name
     - Objective
@@ -30,8 +30,12 @@ def print_attack_result(attack, response, verdict, detail=None):
     """
     print("\n==================================================")
     print(f"Attack ID: {attack['id']}")
+    if attack.get("parent_test_id"):
+        print(f"Parent Test ID: {attack['parent_test_id']}")
     print(f"Category: {attack['category']}")
     print(f"Attack: {attack['name']}")
+    if attack.get("generation_method"):
+        print(f"Generation Method: {attack['generation_method']}")
     print("\nObjective:")
     print(attack["objective"])
     print("\nPrompt:")
@@ -103,21 +107,49 @@ def print_vulnerability_findings(vulnerable_cases):
     print("============================================================")
 
 
-def run_security_tests(target_mode=None):
+def run_security_tests(
+    target_mode=None,
+    target_id=None,
+    include_baseline=True,
+    enable_mutations=False,
+    max_mutations=10,
+    categories=None,
+):
     """
-    Executes the full suite of adversarial attacks against the TechMart target,
-    evaluates responses for canary leakage or security refusal, records in-memory
-    results, and produces a complete security assessment report.
+    Executes the suite of adversarial attacks (baseline and optional runtime mutations)
+    against the active target adapter, evaluates responses for canary leakage or security
+    refusal, records in-memory results, and produces a complete security assessment report.
     """
-    if target_mode:
-        set_target_mode(target_mode)
+    from target_client import get_active_adapter
+    adapter = get_active_adapter(target_id)
 
-    active_mode = get_target_mode()
-    attacks = generate_attacks()
+    if target_mode and hasattr(adapter, "set_mode"):
+        adapter.set_mode(target_mode)
+
+    active_mode = getattr(adapter, "get_mode", lambda: "STANDARD")()
+
+    if enable_mutations:
+        from attack_generator import generate_runtime_suite
+        attacks = generate_runtime_suite(
+            target_id=target_id,
+            categories=categories,
+            include_baseline=include_baseline,
+            enable_mutations=True,
+            enable_templates=False,
+            enable_llm=False,
+            max_candidates=max_mutations,
+        )
+    else:
+        attacks = generate_attacks()
+        if categories:
+            attacks = [a for a in attacks if a["category"] in categories]
 
     print("==================================================")
     print("        LLMGuard Adversarial Security Suite       ")
-    print(f"        Target Mode: {active_mode:<28} ")
+    print(f"  Target: {adapter.name:<32}")
+    print(f"  Provider: {adapter.provider.upper():<15} Model: {adapter.model}")
+    print(f"  Target Mode: {active_mode:<27}")
+    print(f"  Total Attacks: {len(attacks):<25}")
     print("==================================================")
 
     results_summary = {
@@ -145,8 +177,8 @@ def run_security_tests(target_mode=None):
         cat = attack["category"]
         category_stats[cat]["total"] += 1
 
-        response, _latency_ms = send_attack(attack["prompt"])
-        verdict, detail = evaluate_response_details(response)
+        response, _latency_ms = adapter.send_message(attack["prompt"])
+        verdict, detail = evaluate_response_details(response, canaries=adapter.canaries)
 
         results_summary[verdict] += 1
         category_stats[cat][verdict] += 1
@@ -157,6 +189,7 @@ def run_security_tests(target_mode=None):
         if verdict == "VULNERABLE":
             vulnerable_cases.append({
                 "id": attack["id"],
+                "parent_test_id": attack.get("parent_test_id"),
                 "category": cat,
                 "name": attack["name"],
                 "detail": detail
@@ -178,6 +211,46 @@ if __name__ == "__main__":
         choices=["SECURE", "VULNERABLE"],
         help="Optional mode to switch the TechMart target to before testing"
     )
+    parser.add_argument(
+        "--target",
+        help="Optional target ID to scan (defaults to active target)"
+    )
+    parser.add_argument(
+        "--enable-mutations",
+        action="store_true",
+        help="Enable deterministic runtime mutation testing"
+    )
+    parser.add_argument(
+        "--max-mutations",
+        type=int,
+        default=10,
+        help="Maximum number of mutated attacks to generate (default: 10)"
+    )
+    parser.add_argument(
+        "--categories",
+        nargs="+",
+        help="Filter attacks by category"
+    )
+    parser.add_argument(
+        "--compare",
+        action="store_true",
+        help="Run baseline vs runtime-mutation comparison mode"
+    )
     args = parser.parse_args()
 
-    run_security_tests(target_mode=args.mode)
+    if args.compare:
+        from comparison import run_comparison
+        run_comparison(
+            target_mode=args.mode,
+            target_id=args.target,
+            max_mutations=args.max_mutations,
+            categories=args.categories,
+        )
+    else:
+        run_security_tests(
+            target_mode=args.mode,
+            target_id=args.target,
+            enable_mutations=args.enable_mutations,
+            max_mutations=args.max_mutations,
+            categories=args.categories,
+        )

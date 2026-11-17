@@ -1,58 +1,51 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @theme {
-  --color-surface: #0d0d10;
-  --color-background: #0d0d10;
-  --color-surface-dim: #0d0d10;
-  --color-surface-bright: #33333d;
-  --color-surface-variant: #2a2a32;
-  --color-surface-container-lowest: #08080a;
-  --color-surface-container-low: #18181c;
-  --color-surface-container: #1e1e23;
-  --color-surface-container-high: #24242c;
-  --color-surface-container-highest: #2e2e36;
-  --color-inverse-surface: #e5e1e4;
-  --color-inverse-on-surface: #313032;
-
-  --color-primary: #f59e0b;
-  --color-primary-container: #d97706;
-  --color-primary-fixed: #fef3c7;
-  --color-primary-fixed-dim: #ffb77d;
-  --color-inverse-primary: #904d00;
-  --color-on-primary: #09090b;
-  --color-on-primary-container: #432100;
-  --color-on-primary-fixed: #2f1500;
-  --color-on-primary-fixed-variant: #6e3900;
-
-  --color-secondary: #ffb95f;
-  --color-secondary-container: #ee9800;
-  --color-secondary-fixed: #ffddb8;
-  --color-secondary-fixed-dim: #ffb95f;
-  --color-on-secondary: #472a00;
-  --color-on-secondary-container: #5b3800;
-  --color-on-secondary-fixed: #2a1700;
-  --color-on-secondary-fixed-variant: #653e00;
-
-  --color-tertiary: #10b981;
-  --color-tertiary-container: #065f46;
-  --color-tertiary-fixed: #d1fae5;
-  --color-tertiary-fixed-dim: #a7f3d0;
-  --color-on-tertiary: #2f3038;
-  --color-on-tertiary-container: #282931;
-  --color-on-tertiary-fixed: #064e3b;
-  --color-on-tertiary-fixed-variant: #047857;
-
-  --color-error: #f87171;
-  --color-error-container: #7f1d1d;
-  --color-on-error: #690005;
-  --color-on-error-container: #ffdad6;
-
-  --color-outline: #71717a;
-  --color-outline-variant: #554336;
-  --color-on-surface: #f3f4f6;
-  --color-on-surface-variant: #9ca3af;
-  --color-on-background: #e5e1e4;
-
+  --color-surface: #F5F3EC;
+  --color-background: #F5F3EC;
+  --color-surface-dim: #EEECE3;
+  --color-surface-bright: #FFFEFA;
+  --color-surface-variant: #E8E5DB;
+  --color-surface-container-lowest: #FFFEFA;
+  --color-surface-container-low: #F9F7F0;
+  --color-surface-container: #F1EFE6;
+  --color-surface-container-high: #E8E5DB;
+  --color-surface-container-highest: #D8D5C9;
+  --color-primary: #176B55;
+  --color-primary-container: #DCEFE5;
+  --color-primary-fixed: #EAF5EE;
+  --color-on-primary: #FFFFFF;
+  --color-on-surface: #1F2D28;
+  --color-on-surface-variant: #586860;
+  --color-outline: #A9B2A9;
+  --color-outline-variant: #E3E0D6;
+  --color-error: #B84235;
+  --color-error-container: #F8E3DE;
+  --color-on-error: #FFFFFF;
+  --color-tertiary: #287A59;
+  --color-tertiary-container: #DDEFE4;
+  --color-on-tertiary: #194A35;
+  --color-slate-50: #FAF9F4;
+  --color-slate-100: #F1EFE6;
+  --color-slate-200: #E3E0D6;
+  --color-slate-300: #D1CEC2;
+  --color-slate-400: #A9B2A9;
+  --color-slate-500: #7A8980;
+  --color-slate-600: #586860;
+  --color-slate-700: #3D5047;
+  --color-slate-800: #2B3D34;
+  --color-slate-900: #1F2D28;
+  --color-slate-950: #13231D;
+  --color-blue-50: #EAF5EE;
+  --color-blue-100: #DCEFE5;
+  --color-blue-200: #B8DCC8;
+  --color-blue-300: #8BC2A6;
+  --color-blue-400: #56A27F;
+  --color-blue-500: #2C8666;
+  --color-blue-600: #176B55;
+  --color-blue-700: #125643;
+  --color-blue-800: #104737;
+  --color-blue-900: #0D392E;
   --spacing-space-xs: 0.375rem;
   --spacing-space-sm: 0.625rem;
   --spacing-space-md: 1rem;
@@ -64,125 +57,146 @@
   --spacing-gutter-sm: 0.75rem;
   --spacing-gutter: 1.25rem;
   --spacing-gutter-lg: 1.75rem;
-
-  --font-headline: 'Space Grotesk', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --font-body: 'JetBrains Mono', monospace;
+  --font-body: 'Inter', 'Segoe UI', sans-serif;
+  --font-headline: 'Inter', 'Segoe UI', sans-serif;
+  --font-mono: 'SFMono-Regular', 'Consolas', monospace;
 }
 
-/* =========================================================
-   Base & Global Styles
-   ========================================================= */
-
 :root {
-  font-family: 'JetBrains Mono', monospace;
-  color: #f3f4f6;
-  background-color: #0d0d10;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  color: #1F2D28;
+  background: #F5F3EC;
+  line-height: 1.5;
+  font-weight: 400;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
 }
 
-html, body {
+html, body, #root {
   margin: 0;
-  padding: 0;
   min-width: 320px;
   min-height: 100%;
-  background-color: #0d0d10;
-  color: #f3f4f6;
-  overscroll-behavior: none;
+  background: #F5F3EC;
+  color: #1F2D28;
 }
 
 body {
   min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 68% -12%, rgba(44, 134, 102, 0.09), transparent 36%),
+    #F5F3EC;
 }
 
-#root {
-  width: 100%;
-  min-height: 100vh;
+button, input, select, textarea {
+  font: inherit;
 }
 
-/* =========================================================
-   Typography Utilities
-   ========================================================= */
+.font-headline,
+.font-body,
+.font-label,
+.font-body-lg,
+.font-body-md,
+.font-body-sm,
+.font-label-lg,
+.font-label-md,
+.font-label-sm,
+.font-headline-xl,
+.font-headline-lg,
+.font-headline-md,
+.font-headline-sm {
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
 
-.font-headline {
-  font-family: 'Space Grotesk', sans-serif;
+.font-headline-xl {
+  font-size: 2rem;
+  line-height: 1.2;
+  font-weight: 700;
 }
 
 .font-headline-lg {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 36px;
-  line-height: 44px;
-  letter-spacing: -0.02em;
+  font-size: 1.75rem;
+  line-height: 1.25;
   font-weight: 700;
 }
 
 .font-headline-md {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 26px;
-  line-height: 34px;
-  letter-spacing: -0.01em;
+  font-size: 1.375rem;
+  line-height: 1.35;
   font-weight: 600;
 }
 
 .font-headline-sm {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 19px;
-  line-height: 26px;
-  letter-spacing: 0em;
+  font-size: 1.125rem;
+  line-height: 1.4;
   font-weight: 600;
 }
 
 .font-body-lg {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 16px;
-  line-height: 26px;
-  letter-spacing: -0.01em;
+  font-size: 1rem;
+  line-height: 1.625;
 }
 
 .font-body-md {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 14.5px;
-  line-height: 22px;
-  letter-spacing: 0em;
+  font-size: 0.9rem;
+  line-height: 1.55;
 }
 
 .font-body-sm {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  line-height: 19px;
-  letter-spacing: 0.01em;
+  font-size: 0.8125rem;
+  line-height: 1.5;
 }
 
 .font-label-lg {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 14px;
-  line-height: 18px;
-  letter-spacing: 0.06em;
+  font-size: 0.875rem;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
   font-weight: 600;
 }
 
 .font-label-md {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  line-height: 16px;
-  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  letter-spacing: 0.05em;
   font-weight: 600;
 }
 
 .font-label-sm {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  line-height: 15px;
-  letter-spacing: 0.1em;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  letter-spacing: 0.08em;
   font-weight: 700;
 }
 
-/* =========================================================
-   Material Symbols Icons
-   ========================================================= */
+.text-body-sm {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.text-headline-lg {
+  font-size: 1.75rem;
+  line-height: 1.25;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #EEECE3;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C8C9BB;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9BA79A;
+}
 
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
@@ -204,71 +218,27 @@ body {
   font-feature-settings: 'liga';
 }
 
-/* =========================================================
-   Scrollbars
-   ========================================================= */
-
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #08080a;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #24242c;
-  border-radius: 999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #2e2e36;
-}
-
-/* =========================================================
-   Card & Button Presets
-   ========================================================= */
-
-.card {
-  background-color: #08080a;
-  border: 1px solid rgba(36, 36, 44, 0.7);
-  border-radius: 0.875rem;
-}
-
-.card:hover {
-  border-color: rgba(245, 158, 11, 0.35);
-}
-
 .btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background-color: #f59e0b;
-  color: #09090b;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 0.625rem 1.25rem;
-  border-radius: 0.625rem;
-  transition: all 0.15s ease-in-out;
-  box-shadow: 0 0 16px rgba(245, 158, 11, 0.28);
+  background: linear-gradient(180deg, #287A62 0%, #176B55 100%);
+  color: white;
+  border: 1px solid rgba(23, 107, 85, 0.28);
+  border-radius: 0.8rem;
+  padding: 0.7rem 1.2rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(23, 75, 58, 0.16);
   cursor: pointer;
-  border: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background-color: #fbbf24;
-  box-shadow: 0 0 24px rgba(245, 158, 11, 0.45);
+.btn-primary:hover {
   transform: translateY(-1px);
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  box-shadow: none;
-  transform: none;
+  box-shadow: 0 12px 28px rgba(23, 75, 58, 0.2);
+  filter: brightness(0.98);
 }
 
 .btn-secondary {
@@ -276,84 +246,62 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background-color: #1e1e23;
-  color: #f3f4f6;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13.5px;
+  background: #FFFEFA;
+  color: #1F2D28;
+  border: 1px solid #E3E0D6;
+  border-radius: 0.8rem;
+  padding: 0.7rem 1.2rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  padding: 0.625rem 1.25rem;
-  border-radius: 0.625rem;
-  border: 1px solid #2e2e38;
-  transition: all 0.15s ease-in-out;
   cursor: pointer;
 }
 
-.btn-secondary:hover:not(:disabled) {
-  background-color: #262630;
-  border-color: #71717a;
-  transform: translateY(-1px);
+.btn-secondary:hover {
+  background: #F9F7F0;
 }
 
-.btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background-color: transparent;
-  color: #9ca3af;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 0.5rem 1rem;
-  border-radius: 0.625rem;
-  border: 1px solid #24242c;
-  transition: all 0.15s ease-in-out;
-  cursor: pointer;
+.page-shell {
+  width: 100%;
+  padding: 2rem;
 }
 
-.btn-ghost:hover:not(:disabled) {
-  background-color: #1e1e23;
-  color: #f3f4f6;
-  border-color: #71717a;
+.panel {
+  background: rgba(255, 254, 250, 0.94);
+  border: 1px solid #E3E0D6;
+  border-radius: 1.25rem;
+  box-shadow: 0 12px 25px rgba(35, 54, 43, 0.045);
 }
 
-/* Badges */
-.badge-safe {
-  background-color: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  font-size: 12px;
-  padding: 0.25rem 0.625rem;
-  border-radius: 0.375rem;
-  font-weight: 600;
+.section-heading {
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #586860;
+  font-weight: 700;
 }
 
-.badge-vuln {
-  background-color: rgba(248, 113, 113, 0.15);
-  color: #f87171;
-  border: 1px solid rgba(248, 113, 113, 0.3);
-  font-size: 12px;
-  padding: 0.25rem 0.625rem;
-  border-radius: 0.375rem;
-  font-weight: 600;
+.metric-card {
+  border-radius: 1rem;
+  border: 1px solid #E3E0D6;
+  background: #FFFEFA;
+  box-shadow: 0 8px 18px rgba(35, 54, 43, 0.035);
 }
 
-.badge-error {
-  background-color: #24242c;
-  color: #fde68a;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  font-size: 12px;
-  padding: 0.25rem 0.625rem;
-  border-radius: 0.375rem;
-  font-weight: 600;
+.text-muted {
+  color: #586860;
 }
 
-.badge-idle {
-  background-color: #18181c;
-  color: #71717a;
-  border: 1px solid #24242c;
-  font-size: 12px;
-  padding: 0.25rem 0.625rem;
-  border-radius: 0.375rem;
-  font-weight: 600;
+.border-subtle {
+  border-color: #E3E0D6;
+}
+
+@media (max-width: 768px) {
+  .page-shell {
+    padding: 1rem;
+  }
+
+  .font-headline-lg,
+  .text-headline-lg {
+    font-size: 1.5rem;
+  }
 }

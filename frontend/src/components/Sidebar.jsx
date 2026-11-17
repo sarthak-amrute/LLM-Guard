@@ -1,149 +1,108 @@
 import { NavLink } from 'react-router-dom';
 import { useStatus } from '../context/useStatus';
+import {
+  BarChart3,
+  FileSearch,
+  History,
+  LayoutDashboard,
+  PlayCircle,
+  Settings,
+  ShieldCheck,
+  Target,
+} from 'lucide-react';
 
 const NAV_ITEMS = [
-  { to: '/dashboard',  icon: 'shield',      label: 'Dashboard' },
-  { to: '/run-scan',   icon: 'play_arrow',  label: 'Run Scan' },
-  { to: '/live-scan',  icon: 'radar',       label: 'Live Scan' },
-  { to: '/results',    icon: 'policy',      label: 'Results' },
-  { to: '/test-cases', icon: 'biotech',     label: 'Test Cases' },
-  { to: '/reports',    icon: 'assessment',  label: 'Reports' },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/run-scan', label: 'New Scan', icon: PlayCircle },
+  { to: '/scan-history', label: 'Scan History', icon: History },
+  { to: '/results', label: 'Findings', icon: FileSearch },
+  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { to: '/target', label: 'Targets', icon: Target },
 ];
 
-export default function Sidebar({ onClose }) {
+export default function Sidebar({ onClose, open = false }) {
   const { status } = useStatus();
   const isOperational = status?.llmguard === 'running';
+  const activeTargetName = status?.active_target?.name || (status?.target_online ? 'TechMart Support' : 'No Target');
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest z-50 flex flex-col justify-between border-r border-surface-container-high/60 shadow-[0_4px_30px_rgba(0,0,0,0.7)]">
-      <div className="flex flex-col">
-        {/* Brand Header */}
-        <div className="h-20 px-space-md flex items-center justify-between bg-surface-container-lowest border-b border-surface-container-high/40">
+    <aside className={`fixed left-0 top-0 z-50 flex h-dvh w-[min(18rem,calc(100vw-3rem))] flex-col justify-between overflow-y-auto border-r border-[#274b3e] bg-[#193c32] text-[#f3f4e9] shadow-[0_12px_35px_rgba(15,35,27,0.2)] transition-transform duration-200 md:w-72 lg:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className="flex shrink-0 flex-col">
+        <div className="flex h-20 items-center justify-between border-b border-white/10 px-5">
           <div className="flex items-center gap-3">
-            <div className="relative w-11 h-11 rounded-xl overflow-hidden border border-primary/40 shadow-[0_0_15px_rgba(245,158,11,0.25)] shrink-0 bg-surface-container-high">
-              <img
-                src="/llmguard-shield.jpg"
-                alt="LLMGuard Shield"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'flex';
-                }}
-              />
-              <div className="hidden w-full h-full items-center justify-center bg-primary/10">
-                <span className="material-symbols-outlined text-primary text-[24px]">shield</span>
-              </div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-200/20 bg-emerald-100/10 text-emerald-200 shadow-sm">
+              <ShieldCheck className="h-5 w-5" />
             </div>
             <div className="flex flex-col">
-              <div className="flex items-center gap-1.5">
-                <span className="font-headline text-base font-bold tracking-tight text-on-surface leading-none">
-                  LLM<span className="text-primary font-black">Guard</span>
-                </span>
-                <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[9px] font-bold uppercase tracking-wider border border-primary/30">
-                  v2.4
-                </span>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold tracking-tight text-[#f5f4eb]">LLM<span className="text-emerald-200">Guard</span></span>
+                <span className="rounded-full border border-emerald-200/20 bg-emerald-100/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-emerald-100">v2.4</span>
               </div>
-              <span className="font-label-sm text-[11px] uppercase tracking-widest text-primary font-semibold mt-0.5">
-                Enterprise SecOps
-              </span>
+              <span className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#a8bdb0]">LLM Security Platform</span>
             </div>
           </div>
           {onClose && (
-            <button onClick={onClose} className="md:hidden text-outline hover:text-on-surface p-1.5 rounded-lg hover:bg-surface-container-high">
-              <span className="material-symbols-outlined text-[20px]">close</span>
+            <button onClick={onClose} className="rounded-lg p-1.5 text-emerald-200/70 hover:bg-white/10 hover:text-white lg:hidden cursor-pointer" aria-label="Close navigation">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><path d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           )}
         </div>
 
-        {/* Section Label */}
-        <div className="px-space-md pt-4 pb-2">
-          <span className="font-label-sm text-[11px] uppercase text-outline tracking-wider font-semibold">
-            SecOps Navigation
-          </span>
+        <div className="px-5 pb-2 pt-5">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8fa99b]">Workspace</span>
         </div>
 
-        {/* Nav Items */}
-        <nav className="px-space-sm space-y-1.5">
-          {NAV_ITEMS.map(({ to, icon, label }) => (
+        <nav className="space-y-1 px-3">
+          {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}
               onClick={onClose}
               className={({ isActive }) =>
                 isActive
-                  ? 'flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all bg-primary/15 text-primary border-l-3 border-primary font-bold text-[14px] shadow-sm'
-                  : 'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[14px] text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all font-medium'
+                  ? 'flex items-center gap-3 rounded-xl border border-emerald-200/15 bg-emerald-100/10 px-3 py-2.5 font-semibold text-emerald-100'
+                  : 'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[#c2d0c6] transition hover:bg-white/5 hover:text-white'
               }
             >
-              <span className="material-symbols-outlined text-[22px]">{icon}</span>
-              <span className="tracking-tight">{label}</span>
+              <Icon className="h-4 w-4" />
+              <span>{label}</span>
             </NavLink>
           ))}
         </nav>
       </div>
 
-      {/* Bottom Info & User Profile */}
-      <div className="flex flex-col p- space-y-2.5 p-4 bg-surface-container-lowest border-t border-surface-container-high/40">
-        {/* System Status Card */}
-        <div className="bg-surface-container-low rounded-xl p-3 flex flex-col gap-1.5 border border-surface-container-high/60">
-          <div className="flex items-center justify-between">
-            <span className="font-label-sm text-[11px] uppercase text-outline font-semibold">System Status</span>
-            <span className="relative flex h-2.5 w-2.5">
-              <span
-                className={`animate-ping absolute inline-flex h-full w-full rounded-full ${
-                  isOperational ? 'bg-tertiary' : 'bg-error'
-                } opacity-75`}
-              />
-              <span
-                className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                  isOperational ? 'bg-tertiary' : 'bg-error'
-                }`}
-              />
-            </span>
+      <div className="mt-auto shrink-0 space-y-3 border-t border-white/10 bg-[#15362d] p-4">
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#91a99b]">System Status</span>
+            <span className={`inline-flex h-2.5 w-2.5 rounded-full ${isOperational ? 'bg-emerald-500' : 'bg-red-500'} shadow-[0_0_0_4px_rgba(148,163,184,0.12)]`} />
           </div>
-          <div className="font-body-sm text-[13px] text-on-surface font-semibold truncate flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${isOperational ? 'bg-tertiary' : 'bg-error'}`} />
-            {isOperational ? 'Gateway: Operational' : 'Gateway: Disconnected'}
+          <div className="flex items-center gap-2 text-sm font-medium text-[#e1e9df]">
+            <span className={`inline-block h-2 w-2 rounded-full ${isOperational ? 'bg-emerald-500' : 'bg-red-500'}`} />
+            {isOperational ? 'Gateway online' : 'Gateway offline'}
           </div>
         </div>
 
-        {/* Cluster Env Card */}
-        <NavLink
-          to="/target"
-          className="bg-surface-container-low rounded-xl p-3 flex items-center justify-between border border-surface-container-high/60 hover:border-primary/40 transition-colors"
-          title="Click to manage target cluster"
-        >
-          <div className="flex flex-col min-w-0">
-            <span className="font-label-sm text-[11px] uppercase text-outline font-semibold">Cluster Env</span>
-            <span className="font-body-sm text-[13px] text-primary font-semibold truncate">
-              {status?.target_online ? 'prod-gpt4o-cluster' : 'cluster-offline'}
-            </span>
+        <NavLink to="/target" className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3 text-left transition hover:border-emerald-200/20 hover:bg-white/10">
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#91a99b]">Active Target</div>
+            <div className="mt-1 truncate text-sm font-semibold text-[#f3f4e9]" title={activeTargetName}>{activeTargetName}</div>
           </div>
-          <span className="material-symbols-outlined text-[20px] text-outline">swap_vert</span>
+          <Target className="h-4 w-4 text-slate-400" />
         </NavLink>
 
-        {/* Auditor Profile */}
-        <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shadow-md">
-              <span className="material-symbols-outlined text-on-primary text-[20px]">person</span>
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700 text-emerald-50 shadow-sm">
+              <ShieldCheck className="h-4 w-4" />
             </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-[13px] text-on-surface font-bold truncate leading-snug">
-                SecOps Auditor
-              </span>
-              <span className="text-[11px] text-outline truncate font-medium">
-                Tier 3 Admin
-              </span>
+            <div>
+              <div className="text-sm font-semibold text-[#f3f4e9]">SecOps Auditor</div>
+              <div className="text-[11px] text-[#a8bdb0]">Tier 3 Admin</div>
             </div>
           </div>
-          <NavLink
-            to="/settings"
-            className="text-on-surface-variant hover:text-on-surface transition-colors p-2 rounded-lg hover:bg-surface-container-high"
-            title="Settings"
-          >
-            <span className="material-symbols-outlined text-[20px]">settings</span>
+          <NavLink to="/settings" className="rounded-lg p-2 text-[#a8bdb0] transition hover:bg-white/10 hover:text-white" aria-label="Settings">
+            <Settings className="h-4 w-4" />
           </NavLink>
         </div>
       </div>

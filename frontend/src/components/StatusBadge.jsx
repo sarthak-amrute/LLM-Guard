@@ -1,52 +1,76 @@
 // Shared status badge component
 const BADGE_MAP = {
   SAFE: {
-    cls: 'bg-tertiary/15 text-tertiary border-tertiary/30',
+    cls: 'border-emerald-200 bg-emerald-50 text-emerald-800',
     label: 'Safe',
   },
   VULNERABLE: {
-    cls: 'bg-error/15 text-error border-error/30',
+    cls: 'border-red-200 bg-red-50 text-red-800',
     label: 'Vulnerable',
   },
   TARGET_ERROR: {
-    cls: 'bg-surface-container-high text-amber-200 border-amber-500/30',
+    cls: 'border-amber-300 bg-amber-50 text-amber-800',
     label: 'Error',
   },
   running: {
-    cls: 'bg-primary/15 text-primary border-primary/30',
+    cls: 'border-blue-200 bg-blue-50 text-blue-800',
+    label: 'Running',
+  },
+  RUNNING: {
+    cls: 'border-blue-200 bg-blue-50 text-blue-800',
     label: 'Running',
   },
   completed: {
-    cls: 'bg-tertiary/15 text-tertiary border-tertiary/30',
+    cls: 'border-emerald-200 bg-emerald-50 text-emerald-800',
     label: 'Completed',
   },
+  COMPLETED: {
+    cls: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    label: 'Completed',
+  },
+  cancelled: {
+    cls: 'border-amber-300 bg-amber-50 text-amber-800',
+    label: 'Stopped',
+  },
+  CANCELLED: {
+    cls: 'border-amber-300 bg-amber-50 text-amber-800',
+    label: 'Stopped',
+  },
+  stopped: {
+    cls: 'border-amber-300 bg-amber-50 text-amber-800',
+    label: 'Stopped',
+  },
   idle: {
-    cls: 'bg-surface-container text-outline border-surface-container-high',
+    cls: 'border-slate-200 bg-slate-100 text-slate-700',
     label: 'Idle',
   },
   error: {
-    cls: 'bg-error-container/80 text-error border-error/40',
+    cls: 'border-red-200 bg-red-50 text-red-800',
+    label: 'Failed',
+  },
+  FAILED: {
+    cls: 'border-red-200 bg-red-50 text-red-800',
     label: 'Failed',
   },
   SECURE: {
-    cls: 'bg-tertiary/15 text-tertiary border-tertiary/30',
+    cls: 'border-emerald-200 bg-emerald-50 text-emerald-800',
     label: 'Secure',
   },
   VULNERABLE_MODE: {
-    cls: 'bg-error/15 text-error border-error/30',
+    cls: 'border-red-200 bg-red-50 text-red-800',
     label: 'Vulnerable',
   },
 };
 
 export default function StatusBadge({ verdict, label }) {
   const map = BADGE_MAP[verdict] || {
-    cls: 'bg-surface-container text-outline border-surface-container-high',
+    cls: 'border-slate-200 bg-slate-100 text-slate-700',
     label: verdict ?? '—',
   };
 
   return (
     <span
-      className={`px-2 py-0.5 rounded-full text-xs font-semibold border inline-flex items-center gap-1 ${map.cls}`}
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${map.cls}`}
     >
       {label ?? map.label}
     </span>

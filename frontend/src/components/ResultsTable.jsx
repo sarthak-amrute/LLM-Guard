@@ -75,7 +75,7 @@ export default function ResultsTable({ results = [] }) {
                 paginated.map((r) => {
                   const isV = r.verdict === 'VULNERABLE';
                   const isE = r.verdict === 'TARGET_ERROR';
-                  const latencyMs = r.latency ?? (isE ? '15000ms' : `${280 + ((r.id.charCodeAt(0) * 17) % 140)}ms`);
+                  const latencyDisplay = r.latency ? r.latency : '—';
 
                   return (
                     <tr
@@ -95,20 +95,20 @@ export default function ResultsTable({ results = [] }) {
                       <td className="py-3.5 px-space-md text-on-surface-variant max-w-xs truncate font-mono text-xs">
                         {trunc(r.response?.replace(/\n/g, ' '), 56)}
                       </td>
-                      <td className="py-3.5 px-space-md text-outline">
-                        {latencyMs}
+                      <td className="py-3.5 px-space-md font-mono text-xs text-outline">
+                        {latencyDisplay}
                       </td>
-                      <td className="py-3.5 px-space-lg text-right whitespace-nowrap">
+                      <td className="py-3.5 px-space-lg text-right">
                         {isV ? (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-error/15 text-error border border-error/30">
+                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-red-50 text-red-800 border border-red-200">
                             Vulnerable
                           </span>
                         ) : isE ? (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-surface-container-high text-amber-200 border border-amber-500/30">
+                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300">
                             Error
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-tertiary/15 text-tertiary border border-tertiary/30">
+                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                             Safe
                           </span>
                         )}
@@ -121,41 +121,31 @@ export default function ResultsTable({ results = [] }) {
           </table>
         </div>
 
-        {/* Pagination Footer */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-space-lg py-3 bg-surface-container-lowest border-t border-surface-container-high/60 text-xs text-outline font-body-sm">
-            <span>Showing {paginated.length} of {filtered.length} records</span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1}
-                className="px-2.5 py-1 rounded bg-surface-container border border-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors disabled:opacity-40 cursor-pointer"
-              >
-                Previous
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pg) => (
-                <button
-                  key={pg}
-                  onClick={() => setPage(pg)}
-                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
-                    pg === page
-                      ? 'bg-primary text-on-primary font-bold'
-                      : 'bg-surface-container border border-surface-container-high text-on-surface-variant hover:text-on-surface'
-                  }`}
-                >
-                  {pg}
-                </button>
-              ))}
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages}
-                className="px-2.5 py-1 rounded bg-surface-container border border-surface-container-high text-on-surface-variant hover:text-on-surface transition-colors disabled:opacity-40 cursor-pointer"
-              >
-                Next
-              </button>
-            </div>
+        {/* Pagination footer */}
+        <div className="flex items-center justify-between px-space-lg py-3 border-t border-surface-container-high/50 text-xs text-outline">
+          <span>
+            Showing {paginated.length} of {filtered.length} records
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="px-2.5 py-1 rounded border border-surface-container-high hover:border-outline text-outline hover:text-on-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Prev
+            </button>
+            <span className="px-2 text-primary font-mono font-medium">
+              {page} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="px-2.5 py-1 rounded border border-surface-container-high hover:border-outline text-outline hover:text-on-surface disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Next
+            </button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

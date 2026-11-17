@@ -12,9 +12,8 @@ export default function Dashboard() {
   const [filter, setFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [rerunState, setRerunState] = useState('idle');
-  const [guardrailState, setGuardrailState] = useState('idle');
 
-  const PAGE_SIZE = 7;
+  const PAGE_SIZE = 8;
 
   useEffect(() => {
     let mounted = true;
@@ -43,7 +42,7 @@ export default function Dashboard() {
 
   const results = scanData?.results ?? [];
 
-  // Filtered table rows
+  // Filtered rows for recent evaluation activity
   const filteredResults = results.filter((r) => {
     if (filter === 'all') return true;
     if (filter === 'safe') return r.verdict === 'SAFE';
@@ -58,7 +57,7 @@ export default function Dashboard() {
     currentPage * PAGE_SIZE
   );
 
-  // Top vulnerable cases for triage cards
+  // Top vulnerable findings for triage (without test IDs)
   const vulnerableResults = results.filter((r) => r.verdict === 'VULNERABLE');
   const triageItems = vulnerableResults.slice(0, 2);
 
@@ -70,19 +69,11 @@ export default function Dashboard() {
       setRerunState('queued');
       setTimeout(() => {
         navigate('/live-scan');
-      }, 700);
+      }, 600);
     } catch {
       setRerunState('idle');
       navigate('/run-scan');
     }
-  };
-
-  const handlePushGuardrail = () => {
-    setGuardrailState('pushing');
-    setTimeout(() => {
-      setGuardrailState('active');
-      setTimeout(() => setGuardrailState('idle'), 3000);
-    }, 900);
   };
 
   const handleExportPDF = () => {
@@ -95,8 +86,8 @@ export default function Dashboard() {
         <span className="material-symbols-outlined animate-spin text-[32px] text-primary">
           refresh
         </span>
-        <div className="font-body-sm text-on-surface-variant">
-          Loading evaluation telemetry...
+        <div className="font-body-sm text-on-surface-variant text-sm">
+          Loading security metrics and findings…
         </div>
       </div>
     );
@@ -105,10 +96,10 @@ export default function Dashboard() {
   if (error && !scanData) {
     return (
       <div className="p-space-xl">
-        <div className="bg-surface-container-lowest border border-error/40 rounded-xl p-space-xl flex flex-col items-center text-center gap-3">
+        <div className="bg-surface-container-lowest border border-error/40 rounded-xl p-space-xl flex flex-col items-center text-center gap-3 shadow-sm">
           <span className="material-symbols-outlined text-[36px] text-error">error</span>
-          <div className="font-headline-sm text-on-surface">LLMGuard Backend Unavailable</div>
-          <div className="font-body-sm text-on-surface-variant max-w-md">
+          <div className="font-headline-sm text-lg font-bold text-on-surface">LLMGuard Backend Unavailable</div>
+          <div className="font-body-sm text-sm text-on-surface-variant max-w-md">
             Could not connect to the LLMGuard API on port 8001. Ensure the backend server is running.
           </div>
           <div className="font-mono text-xs bg-surface-container-low border border-surface-container-high px-4 py-2 rounded text-error">
@@ -116,7 +107,7 @@ export default function Dashboard() {
           </div>
           <button
             onClick={() => window.location.reload()}
-            className="btn-secondary mt-2"
+            className="btn-secondary mt-2 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[16px]">refresh</span>
             <span>Retry Connection</span>
@@ -126,182 +117,112 @@ export default function Dashboard() {
     );
   }
 
-  // Proper Empty State if no scan has been executed yet
-  if (total === 0 && scanData?.status === 'idle') {
+  // Clean empty state if no scan has been recorded yet
+  if (total === 0 && (!scanData || scanData.status === 'idle')) {
     return (
       <div className="p-space-xl">
-        <div className="bg-surface-container-lowest border border-surface-container-high/60 rounded-xl p-space-xl flex flex-col items-center text-center gap-4 py-16">
+        <div className="bg-surface-container-lowest border border-surface-container-high/60 rounded-xl p-space-xl flex flex-col items-center text-center gap-4 py-16 shadow-sm">
           <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <span className="material-symbols-outlined text-[32px] text-primary">radar</span>
+            <span className="material-symbols-outlined text-[32px] text-primary">shield</span>
           </div>
-          <h2 className="font-headline-md text-on-surface">No Evaluation Runs Found</h2>
-          <p className="font-body-sm text-on-surface-variant max-w-md">
-            No adversarial scan has been recorded yet. Launch your first evaluation run against the TechMart target to populate metrics, triage alerts, and inspection records.
+          <h2 className="font-headline text-xl font-bold text-on-surface">No Evaluation Runs Found</h2>
+          <p className="font-body text-sm text-on-surface-variant max-w-md">
+            No adversarial scan has been recorded yet. Launch a security evaluation run to populate security metrics, vulnerability findings, and inspection logs.
           </p>
           <button
             onClick={() => navigate('/run-scan')}
-            className="btn-primary mt-2"
+            className="btn-primary mt-2 cursor-pointer flex items-center gap-2"
           >
             <span className="material-symbols-outlined text-[18px]">play_arrow</span>
-            <span>Run First Security Scan</span>
+            <span>Run Security Scan</span>
           </button>
         </div>
       </div>
     );
   }
 
-  const scanIdDisplay = scanData?.scan_id ? `SEC-RUN-${scanData.scan_id}` : 'SEC-RUN-0942';
+  const activeTargetName = scanData?.target_info?.name || backendStatus?.active_target?.name || 'TechMart Customer Support';
+  const targetProvider = (scanData?.target_info?.provider || backendStatus?.active_target?.provider || 'techmart').toUpperCase();
+  const targetMode = scanData?.mode || backendStatus?.target_mode || 'STANDARD';
+  const isScanStopped = scanData?.status === 'cancelled';
 
   return (
     <div className="flex flex-col w-full">
-      <div className="p-space-xl space-y-space-xl relative">
-        {/* Top Action and Evaluation Identity Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-lg pb-space-md border-b border-surface-container-high/60">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-space-sm font-label-sm text-[10px] text-outline">
-              <span className="text-primary font-bold bg-primary/10 px-2 py-0.5 rounded border border-primary/20">
-                {scanIdDisplay}
+      <div className="p-space-xl space-y-6 max-w-7xl">
+        {/* Executive Header Banner */}
+        <div className="bg-surface-container-lowest rounded-2xl border border-surface-container-high/70 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2.5 text-xs text-outline">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                {isScanStopped ? 'Scan Stopped (Partial)' : scanData?.status === 'completed' ? 'Evaluation Completed' : 'Scan Live'}
               </span>
-              <span>•</span>
-              <span>Automated Audit</span>
               <span>•</span>
               <span>
-                {scanData?.completed_at
-                  ? new Date(scanData.completed_at).toLocaleTimeString()
-                  : '2 mins ago'}
+                Target: <strong className="text-on-surface font-semibold">{activeTargetName}</strong>
               </span>
+              <span>•</span>
+              <span className="font-mono">{targetProvider} / {targetMode}</span>
+              {scanData?.completed_at && (
+                <>
+                  <span>•</span>
+                  <span>{new Date(scanData.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </>
+              )}
             </div>
-            <h1 className="font-headline-lg text-3xl md:text-4xl font-bold text-on-surface tracking-tight mt-1">
-              Evaluation Run #{scanData?.scan_id ?? '0942'} — TechMart Support AI Gate
+            <h1 className="font-headline text-2xl font-bold text-on-surface tracking-tight">
+              Security Posture & Evaluation Dashboard
             </h1>
-            <div className="flex flex-wrap items-center gap-3 text-on-surface-variant font-body-sm text-[14px] mt-1.5">
-              <span>
-                Target: <strong className="text-on-surface font-semibold">TechMart Support (Gemini / {backendStatus?.target_mode ?? 'SECURE'})</strong>
-              </span>
-              <span>•</span>
-              <span>
-                Profile: <strong className="text-on-surface font-semibold">OWASP LLM Top 10 + Adversarial Matrix</strong>
-              </span>
-            </div>
+            <p className="font-body text-sm text-on-surface-variant">
+              Adversarial red-teaming overview covering prompt injection, data extraction, and boundary enforcement.
+            </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
+            {vulnCount > 0 && (
+              <button
+                onClick={handleRerunFailed}
+                disabled={rerunState === 'running'}
+                className="px-4 py-2.5 rounded-xl bg-surface-container border border-surface-container-high hover:bg-surface-container-high text-on-surface text-xs font-semibold transition-all cursor-pointer disabled:opacity-60 flex items-center gap-2"
+                id="btn-rerun"
+              >
+                <span className={`material-symbols-outlined text-[16px] ${rerunState === 'running' ? 'animate-spin' : ''}`}>
+                  sync
+                </span>
+                <span>{rerunState === 'running' ? 'Scheduling…' : `Re-run Failed (${vulnCount})`}</span>
+              </button>
+            )}
+
             <button
-              onClick={handleRerunFailed}
-              disabled={rerunState === 'running'}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-container border border-surface-container-high hover:bg-surface-container-high text-on-surface font-label-md text-[13px] font-semibold transition-all cursor-pointer disabled:opacity-60"
-              id="btn-rerun"
+              onClick={() => navigate('/run-scan')}
+              className="btn-primary text-xs px-4 py-2.5 flex items-center gap-2 cursor-pointer"
             >
-              <span className={`material-symbols-outlined text-[18px] ${rerunState === 'running' ? 'animate-spin' : ''}`}>
-                {rerunState === 'queued' ? 'done' : 'sync'}
-              </span>
-              <span>
-                {rerunState === 'running'
-                  ? 'Scheduling...'
-                  : rerunState === 'queued'
-                  ? `Queued (${vulnCount} Tests)`
-                  : `Re-run Failed (${vulnCount})`}
-              </span>
-            </button>
-            <button
-              onClick={handlePushGuardrail}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-on-primary font-label-md text-[13.5px] font-bold hover:bg-amber-400 transition-all shadow-[0_0_18px_rgba(245,158,11,0.28)] cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px]">shield</span>
-              <span>
-                {guardrailState === 'pushing'
-                  ? 'Deploying...'
-                  : guardrailState === 'active'
-                  ? 'Guardrail Applied!'
-                  : 'Push Guardrail Rule'}
-              </span>
+              <span className="material-symbols-outlined text-[18px]">play_arrow</span>
+              <span>New Scan</span>
             </button>
           </div>
         </div>
 
-        {/* Hero Visual Card: Enterprise AI Security Overview */}
-        <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-r from-surface-container-lowest via-surface-container-low to-surface-container-lowest p-6 shadow-[0_4px_30px_rgba(0,0,0,0.6)]">
-          <div className="absolute right-0 top-0 bottom-0 w-96 opacity-20 pointer-events-none bg-gradient-to-l from-primary/30 to-transparent" />
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
-            <div className="flex items-center gap-5">
-              <div className="relative w-20 h-20 rounded-2xl overflow-hidden border-2 border-primary/50 shadow-[0_0_25px_rgba(245,158,11,0.35)] shrink-0 bg-surface-container-high">
-                <img
-                  src="/llmguard-shield.jpg"
-                  alt="LLMGuard Enterprise Emblem"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2.5">
-                  <span className="font-headline text-xl font-bold text-on-surface">
-                    LLMGuard Cyber Defense Hub
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-primary/20 text-primary border border-primary/40">
-                    Live Security Mesh
-                  </span>
-                </div>
-                <p className="text-[14px] text-on-surface-variant max-w-2xl mt-1 leading-relaxed">
-                  Continuous adversarial red-teaming & guardrail verification. Analyzing LLM attack vectors including Prompt Injections, Boundary Escapes, and Data Exfiltration in real-time.
-                </p>
-                <div className="flex flex-wrap items-center gap-4 mt-2.5 text-[13px]">
-                  <span className="flex items-center gap-1.5 text-tertiary font-semibold">
-                    <span className="material-symbols-outlined text-[16px]">verified</span>
-                    Zero Hallucination Leaks
-                  </span>
-                  <span className="text-outline">•</span>
-                  <span className="flex items-center gap-1.5 text-primary font-semibold">
-                    <span className="material-symbols-outlined text-[16px]">lock</span>
-                    Strict Guardrail Ruleset
-                  </span>
-                  <span className="text-outline">•</span>
-                  <span className="text-on-surface-variant">
-                    Cluster: <strong className="text-on-surface">TechMart-Support-Node-1</strong>
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0">
-              <button
-                onClick={() => navigate('/live-scan')}
-                className="btn-primary text-[13.5px] px-5 py-2.5 shadow-md flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-[18px]">radar</span>
-                <span>Open Live Radar</span>
-              </button>
-              <button
-                onClick={() => navigate('/test-cases')}
-                className="btn-secondary text-[13.5px] px-4 py-2.5 flex items-center gap-2"
-              >
-                <span className="material-symbols-outlined text-[18px]">biotech</span>
-                <span>Test Catalog</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Overview Metrics Grid (Donut & Stat Cards) */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Card 1: Pass Rate with circular progress chart */}
-          <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container-high/70 flex items-center justify-between shadow-sm hover:border-primary/40 transition-colors">
-            <div className="flex flex-col gap-1.5">
-              <span className="font-label-sm text-[12px] text-outline uppercase tracking-wider font-semibold">
-                Pass Rate
+        {/* Security Metrics Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Security Pass Rate */}
+          <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container-high/70 shadow-sm flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-outline block">
+                Security Pass Rate
               </span>
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-extrabold text-on-surface tracking-tight">
+                <span className="text-3xl font-extrabold text-on-surface tracking-tight">
                   {passRate}%
                 </span>
-                <span className="text-[13px] text-primary font-bold">Passed</span>
               </div>
-              <span className="text-[13px] text-on-surface-variant font-medium">
-                {safeCount} of {total} tests verified
+              <span className="text-xs text-on-surface-variant block">
+                {safeCount} of {total} test probes defended
               </span>
             </div>
-            <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
+            <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
               <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 36 36">
                 <path
-                  className="text-surface-container-highest"
+                  className="text-surface-container-high"
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   fill="none"
                   stroke="currentColor"
@@ -317,73 +238,89 @@ export default function Dashboard() {
                   strokeWidth="3.5"
                 />
               </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-[12px] font-bold text-on-surface">
+              <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-on-surface">
                 {Math.round(Number(passRate))}%
               </span>
             </div>
           </div>
 
-          {/* Card 2: Safe Evaluated */}
-          <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container-high/70 flex flex-col justify-between gap-2.5 shadow-sm hover:border-tertiary/40 transition-colors">
-            <span className="font-label-sm text-[12px] text-outline uppercase tracking-wider font-semibold">
-              Safe Evaluated
+          {/* Card 2: Tests Evaluated */}
+          <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container-high/70 shadow-sm flex flex-col justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-outline">
+              Total Evaluated
             </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-tertiary tracking-tight">
+            <div className="flex items-baseline gap-2 my-1">
+              <span className="text-3xl font-extrabold text-on-surface tracking-tight">
+                {total}
+              </span>
+              <span className="text-xs text-outline font-medium">probes executed</span>
+            </div>
+            <span className="text-xs text-on-surface-variant">
+              Adversarial & regression suite
+            </span>
+          </div>
+
+          {/* Card 3: Safe Defended */}
+          <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container-high/70 shadow-sm flex flex-col justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-outline">
+              Safe Refusals
+            </span>
+            <div className="flex items-baseline gap-2 my-1">
+              <span className="text-3xl font-extrabold text-emerald-800 tracking-tight">
                 {safeCount}
               </span>
-              <span className="text-[13px] text-on-surface-variant font-semibold">{passRate}% passed</span>
+              <span className="text-xs text-emerald-800 font-semibold">Defended</span>
             </div>
-            <span className="text-[13px] text-on-surface-variant font-medium">
-              Jailbreak & leak proof
+            <span className="text-xs text-on-surface-variant">
+              Zero canary leakage detected
             </span>
           </div>
 
-          {/* Card 3: Vulnerable */}
-          <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container-high/70 flex flex-col justify-between gap-2.5 shadow-sm hover:border-error/40 transition-colors">
-            <span className="font-label-sm text-[12px] text-outline uppercase tracking-wider font-semibold">
-              Vulnerable Cases
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-error tracking-tight">
+          {/* Card 4: Vulnerabilities */}
+          <div className={`p-5 rounded-2xl border shadow-sm flex flex-col justify-between transition-colors ${
+            vulnCount > 0
+              ? 'bg-red-50/40 border-red-200'
+              : 'bg-surface-container-lowest border-surface-container-high/70'
+          }`}>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-outline">
+                Vulnerabilities
+              </span>
+              {vulnCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 border border-red-300">
+                  Action Required
+                </span>
+              )}
+            </div>
+            <div className="flex items-baseline gap-2 my-1">
+              <span className={`text-3xl font-extrabold tracking-tight ${vulnCount > 0 ? 'text-red-800' : 'text-on-surface'}`}>
                 {vulnCount}
               </span>
-              <span className="text-[13px] text-error font-bold">Action required</span>
+              <span className="text-xs text-on-surface-variant font-medium">findings</span>
             </div>
-            <span className="text-[13px] text-on-surface-variant font-medium">
-              OWASP LLM01, LLM04, LLM06
-            </span>
-          </div>
-
-          {/* Card 4: Avg Latency */}
-          <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container-high/70 flex flex-col justify-between gap-2.5 shadow-sm hover:border-primary/40 transition-colors">
-            <span className="font-label-sm text-[12px] text-outline uppercase tracking-wider font-semibold">
-              Avg Latency
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-on-surface tracking-tight">340ms</span>
-              <span className="text-[13px] text-primary font-bold">-18ms</span>
-            </div>
-            <span className="text-[13px] text-on-surface-variant font-medium">
-              Within 500ms target SLO
+            <span className="text-xs text-on-surface-variant">
+              {vulnCount > 0 ? 'Requires guardrail reinforcement' : 'All adversarial probes passed'}
             </span>
           </div>
         </div>
 
-        {/* Security Breakdown & Triage Findings Panel */}
-        <div className="space-y-4">
+        {/* Priority Findings & Triage Section */}
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="font-headline text-xl font-bold text-on-surface">
-                Triage & Action Items
+            <div className="flex items-center gap-2.5">
+              <h2 className="font-headline text-lg font-bold text-on-surface">
+                Key Security Findings
               </h2>
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-error/15 text-error border border-error/30">
-                {triageItems.length > 0 ? `${triageItems.length} active findings` : '0 items'}
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-surface-container-high text-on-surface-variant border border-surface-container-highest">
+                {vulnerableResults.length} active
               </span>
             </div>
-            <span className="text-[13px] text-outline font-medium">
-              High-risk prompt injections & boundary escapes
-            </span>
+            <button
+              onClick={() => navigate('/results')}
+              className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+            >
+              View all results →
+            </button>
           </div>
 
           {triageItems.length > 0 ? (
@@ -391,92 +328,72 @@ export default function Dashboard() {
               {triageItems.map((item, idx) => (
                 <div
                   key={item.id}
-                  className="bg-surface-container-lowest p-5 rounded-2xl flex flex-col justify-between gap-4 border border-surface-container-high/70 hover:border-primary/50 transition-all shadow-sm"
+                  className="bg-surface-container-lowest p-5 rounded-2xl flex flex-col justify-between gap-4 border border-surface-container-high/70 hover:border-primary/40 transition-all shadow-sm"
                 >
-                  <div className="flex flex-col gap-2">
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`px-2.5 py-1 rounded-md text-xs font-extrabold uppercase tracking-wide ${
-                            idx === 0
-                              ? 'bg-error-container/80 text-error border border-error/40'
-                              : 'bg-surface-container-high text-amber-400 border border-amber-500/30'
-                          }`}
-                        >
-                          {idx === 0 ? 'Critical' : 'High'}
-                        </span>
-                        <span className="text-xs text-outline font-semibold">
-                          {item.category?.includes('Injection')
-                            ? 'OWASP-LLM01'
-                            : item.category?.includes('Boundary')
-                            ? 'OWASP-LLM04'
-                            : 'OWASP-LLM06'}
-                        </span>
-                      </div>
-                      <span className="font-mono text-xs text-outline font-bold">
-                        ID: {item.id}
+                      <span className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide bg-red-50 text-red-800 border border-red-200">
+                        {idx === 0 ? 'High Risk' : 'Medium Risk'}
+                      </span>
+                      <span className="text-xs text-outline font-medium">
+                        {item.category?.split(' / ')[0] || item.category}
                       </span>
                     </div>
 
-                    <h3 className="font-headline text-lg font-bold text-on-surface mt-1">
+                    <h3 className="font-headline text-base font-bold text-on-surface">
                       {item.name}
                     </h3>
-                    <p className="text-[14px] text-on-surface-variant line-clamp-2 leading-relaxed">
-                      {item.objective || item.detail || 'Vulnerability detected during adversarial probe.'}
+                    <p className="text-xs text-on-surface-variant line-clamp-2 leading-relaxed">
+                      {item.objective || item.detail || 'Vulnerability detected during adversarial testing probe.'}
                     </p>
                   </div>
 
                   <div className="flex items-center justify-between pt-3 border-t border-surface-container-high/60">
-                    <span className="text-xs text-primary flex items-center gap-1.5 font-semibold">
-                      <span className="material-symbols-outlined text-[16px]">
-                        {idx === 0 ? 'auto_fix_high' : 'tune'}
-                      </span>
-                      <span>
-                        {idx === 0
-                          ? 'Sanitization filter available'
-                          : 'Repetition penalty filter'}
-                      </span>
+                    <span className="text-xs text-outline flex items-center gap-1.5 font-medium">
+                      <span className="material-symbols-outlined text-[16px] text-primary">security</span>
+                      <span>Canary compromise detected</span>
                     </span>
                     <button
                       onClick={() => navigate(`/findings/${encodeURIComponent(item.id)}`)}
-                      className="px-4 py-2 rounded-xl bg-surface-container border border-surface-container-high hover:bg-surface-container-high hover:border-primary/40 text-on-surface text-xs font-bold transition-all cursor-pointer shadow-sm"
+                      className="px-3.5 py-1.5 rounded-xl bg-surface-container border border-surface-container-high hover:bg-surface-container-high text-on-surface text-xs font-semibold transition-all cursor-pointer shadow-sm"
                     >
-                      Review & Mitigate
+                      Review Finding
                     </button>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="bg-surface-container-lowest p-6 rounded-2xl border border-surface-container-high/60 text-center py-10">
-              <span className="material-symbols-outlined text-[36px] text-tertiary">
+            <div className="bg-surface-container-lowest p-6 rounded-2xl border border-surface-container-high/60 text-center py-8 shadow-sm">
+              <span className="material-symbols-outlined text-[36px] text-emerald-800">
                 verified_user
               </span>
-              <div className="font-headline text-lg font-bold text-on-surface mt-2">
-                No Active Vulnerability Findings
+              <div className="font-headline text-base font-bold text-on-surface mt-2">
+                No Active Vulnerabilities
               </div>
-              <div className="text-[14px] text-outline mt-1 max-w-md mx-auto">
-                All executed test cases passed or no vulnerable outputs were flagged in this run.
-              </div>
+              <p className="text-xs text-on-surface-variant mt-1 max-w-md mx-auto">
+                All executed test cases passed or no vulnerable outputs were flagged in this evaluation run.
+              </p>
             </div>
           )}
         </div>
 
-        {/* Interactive Scan Inspection Tab & Full Record Table */}
-        <div className="space-y-4">
+        {/* Evaluation Activity Log (NO TEST IDs) */}
+        <div className="space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <h2 className="font-headline text-xl font-bold text-on-surface">
-                Inspection Log
+            <div>
+              <h2 className="font-headline text-lg font-bold text-on-surface">
+                Evaluation Activity
               </h2>
-              <span className="text-[13px] text-outline font-medium">
-                {results.length} evaluated prompts
-              </span>
+              <p className="text-xs text-outline mt-0.5">
+                Detailed record of executed adversarial vectors and verdicts
+              </p>
             </div>
+
             <div className="flex items-center gap-1 bg-surface-container-lowest p-1 rounded-xl border border-surface-container-high/60">
               <button
                 onClick={() => { setFilter('all'); setCurrentPage(1); }}
-                className={`filter-tab px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   filter === 'all'
                     ? 'bg-primary text-on-primary shadow-sm'
                     : 'text-outline hover:text-on-surface'
@@ -486,7 +403,7 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => { setFilter('safe'); setCurrentPage(1); }}
-                className={`filter-tab px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   filter === 'safe'
                     ? 'bg-primary text-on-primary shadow-sm'
                     : 'text-outline hover:text-on-surface'
@@ -496,44 +413,46 @@ export default function Dashboard() {
               </button>
               <button
                 onClick={() => { setFilter('vuln'); setCurrentPage(1); }}
-                className={`filter-tab px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                   filter === 'vuln'
                     ? 'bg-primary text-on-primary shadow-sm'
-                    : 'text-error hover:bg-surface-container'
+                    : 'text-red-800 hover:bg-surface-container'
                 }`}
               >
                 Vulnerable ({vulnCount})
               </button>
-              <button
-                onClick={() => { setFilter('error'); setCurrentPage(1); }}
-                className={`filter-tab px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  filter === 'error'
-                    ? 'bg-primary text-on-primary shadow-sm'
-                    : 'text-outline hover:text-on-surface'
-                }`}
-              >
-                Errors ({errorCount})
-              </button>
+              {errorCount > 0 && (
+                <button
+                  onClick={() => { setFilter('error'); setCurrentPage(1); }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    filter === 'error'
+                      ? 'bg-primary text-on-primary shadow-sm'
+                      : 'text-outline hover:text-on-surface'
+                  }`}
+                >
+                  Errors ({errorCount})
+                </button>
+              )}
             </div>
           </div>
 
+          {/* Activity Table — Minimal, Professional, NO TEST IDs */}
           <div className="bg-surface-container-lowest rounded-2xl overflow-hidden border border-surface-container-high/70 shadow-sm">
             <div className="overflow-x-auto">
-              <table className="w-full text-left font-body text-[14px]">
+              <table className="w-full text-left font-body text-sm">
                 <thead className="border-b border-surface-container-high/70 bg-surface-container-low/50">
-                  <tr className="font-label-sm text-[11px] uppercase text-outline tracking-wider font-bold">
-                    <th className="py-3.5 px-5">Test ID</th>
-                    <th className="py-3.5 px-4">Category</th>
-                    <th className="py-3.5 px-4">Attack Vector</th>
-                    <th className="py-3.5 px-4">Response Summary</th>
-                    <th className="py-3.5 px-4">Latency</th>
-                    <th className="py-3.5 px-5 text-right">Verdict</th>
+                  <tr className="text-[11px] uppercase text-outline tracking-wider font-semibold">
+                    <th className="py-3 px-5">Attack Vector</th>
+                    <th className="py-3 px-4">Category</th>
+                    <th className="py-3 px-4">Response Excerpt</th>
+                    <th className="py-3 px-4">Latency</th>
+                    <th className="py-3 px-5 text-right">Verdict</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-container-high/40">
                   {paginatedResults.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-10 text-center text-outline text-[14px]">
+                      <td colSpan={5} className="py-10 text-center text-outline text-xs">
                         No test records match the selected filter.
                       </td>
                     </tr>
@@ -541,42 +460,39 @@ export default function Dashboard() {
                     paginatedResults.map((r) => {
                       const isV = r.verdict === 'VULNERABLE';
                       const isE = r.verdict === 'TARGET_ERROR';
-                      const latencyMs = r.latency ?? (isE ? '15000ms' : `${280 + ((r.id.charCodeAt(0) * 17) % 140)}ms`);
+                      const latencyDisplay = r.latency ? r.latency : '—';
 
                       return (
                         <tr
                           key={r.id}
                           onClick={() => navigate(`/findings/${encodeURIComponent(r.id)}`)}
-                          className="table-row hover:bg-surface-container-low/80 transition-colors cursor-pointer group"
+                          className="hover:bg-surface-container-low/70 transition-colors cursor-pointer group"
                         >
-                          <td className="py-4 px-5 font-bold text-primary text-[14px]">
-                            {r.id}
-                          </td>
-                          <td className="py-4 px-4 text-on-surface whitespace-nowrap font-medium text-[13.5px]">
-                            {r.category?.split(' / ')[0] || r.category}
-                          </td>
-                          <td className="py-4 px-4 text-on-surface-variant max-w-xs truncate text-[14px] group-hover:text-on-surface transition-colors">
+                          <td className="py-3.5 px-5 font-semibold text-on-surface text-xs max-w-xs truncate group-hover:text-primary transition-colors">
                             {r.name}
                           </td>
-                          <td className="py-4 px-4 text-on-surface-variant max-w-xs truncate text-[13.5px]">
+                          <td className="py-3.5 px-4 text-on-surface-variant whitespace-nowrap text-xs">
+                            {r.category?.split(' / ')[0] || r.category}
+                          </td>
+                          <td className="py-3.5 px-4 text-on-surface-variant max-w-sm truncate text-xs font-mono">
                             {r.response
                               ? r.response.replace(/\n/g, ' ').slice(0, 56) + '…'
                               : '—'}
                           </td>
-                          <td className="py-4 px-4 text-outline font-mono text-[13px]">
-                            {latencyMs}
+                          <td className="py-3.5 px-4 text-outline font-mono text-xs">
+                            {latencyDisplay}
                           </td>
-                          <td className="py-4 px-5 text-right whitespace-nowrap">
+                          <td className="py-3.5 px-5 text-right whitespace-nowrap">
                             {isV ? (
-                              <span className="px-3 py-1 rounded-md text-xs font-bold bg-error/15 text-error border border-error/30">
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-800 border border-red-200">
                                 Vulnerable
                               </span>
                             ) : isE ? (
-                              <span className="px-3 py-1 rounded-md text-xs font-bold bg-surface-container-high text-amber-200 border border-amber-500/30">
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300">
                                 Error
                               </span>
                             ) : (
-                              <span className="px-3 py-1 rounded-md text-xs font-bold bg-tertiary/15 text-tertiary border border-tertiary/30">
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                                 Safe
                               </span>
                             )}
@@ -590,25 +506,25 @@ export default function Dashboard() {
             </div>
 
             {/* Pagination Controls */}
-            <div className="flex items-center justify-between px-5 py-3.5 bg-surface-container-lowest border-t border-surface-container-high/60 text-[13px] text-outline">
+            <div className="flex items-center justify-between px-5 py-3 border-t border-surface-container-high/60 text-xs text-outline">
               <span>
-                Showing <strong className="text-on-surface font-semibold">{paginatedResults.length}</strong> of <strong className="text-on-surface font-semibold">{filteredResults.length}</strong> test runs
+                Showing <strong className="text-on-surface font-semibold">{paginatedResults.length}</strong> of <strong className="text-on-surface font-semibold">{filteredResults.length}</strong> records
               </span>
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1}
-                  className="px-3 py-1.5 rounded-lg border border-surface-container-high text-outline hover:text-on-surface disabled:opacity-40 text-xs font-bold transition-colors cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg border border-surface-container-high text-outline hover:text-on-surface disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Prev
                 </button>
-                <span className="px-2.5 py-1 text-xs text-primary font-bold">
+                <span className="px-2 py-1 text-xs text-primary font-mono font-semibold">
                   {currentPage} / {totalPages}
                 </span>
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
-                  className="px-3 py-1.5 rounded-lg border border-surface-container-high text-outline hover:text-on-surface disabled:opacity-40 text-xs font-bold transition-colors cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg border border-surface-container-high text-outline hover:text-on-surface disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Next
                 </button>
@@ -617,28 +533,28 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Bottom Global Action Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-2 text-[13px] text-outline font-medium">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
-            <span>Active Session: <strong className="text-on-surface">SEC-AUDIT-{scanData?.scan_id ?? '4498'}</strong></span>
+        {/* Global Action Footer */}
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-2 text-xs text-outline border-t border-surface-container-high/50">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-primary" />
+            <span>Active Target: <strong className="text-on-surface">{activeTargetName}</strong></span>
             <span>•</span>
-            <span className="font-mono text-xs">sha256:d8c3...9ae1</span>
+            <span>{total} total attack vectors evaluated</span>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={handleExportPDF}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container border border-surface-container-high hover:bg-surface-container-high text-on-surface transition-all font-semibold cursor-pointer text-xs"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface-container border border-surface-container-high hover:bg-surface-container-high text-on-surface transition-all font-semibold cursor-pointer text-xs"
             >
-              <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+              <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
               <span>Export PDF Report</span>
             </button>
             <button
-              onClick={handlePushGuardrail}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-primary hover:bg-amber-400 text-on-primary font-bold transition-all shadow-[0_0_16px_rgba(245,158,11,0.28)] cursor-pointer text-xs"
+              onClick={() => navigate('/reports')}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary font-semibold transition-all hover:opacity-90 cursor-pointer text-xs"
             >
-              <span className="material-symbols-outlined text-[18px]">send</span>
-              <span>Push Guardrail to Gateway</span>
+              <span className="material-symbols-outlined text-[16px]">assessment</span>
+              <span>Full Compliance Reports</span>
             </button>
           </div>
         </div>

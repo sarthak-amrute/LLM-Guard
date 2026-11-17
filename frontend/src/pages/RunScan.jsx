@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAttacks, getTargetMode, setTargetMode, startScan } from '../services/api';
+import {
+  getAttacks,
+  getTargets,
+  selectTarget,
+  setTargetMode,
+  startScan,
+} from '../services/api';
 import { useStatus } from '../context/useStatus';
 
 const ALL_CATEGORIES = [
@@ -16,9 +22,10 @@ const ALL_CATEGORIES = [
 
 export default function RunScan() {
   const navigate = useNavigate();
-  const { refreshStatus } = useStatus();
+  const { status: globalStatus, refreshStatus } = useStatus();
 
-  const [targetInfo, setTargetInfo] = useState(null);
+  const [targets, setTargets] = useState([]);
+  const [selectedTargetId, setSelectedTargetId] = useState(null);
   const [attackCount, setAttackCount] = useState(null);
   const [selectedMode, setSelectedMode] = useState('SECURE');
   const [selectedCats, setSelectedCats] = useState(new Set(ALL_CATEGORIES));
@@ -30,11 +37,18 @@ export default function RunScan() {
     let mounted = true;
     async function load() {
       try {
-        const [modeData, attackData] = await Promise.all([getTargetMode(), getAttacks()]);
+        const [targetData, attackData] = await Promise.all([
+          getTargets(),
+          getAttacks(),
+        ]);
         if (!mounted) return;
-        setTargetInfo(modeData);
+        const allTargets = targetData.targets || [];
+        setTargets(allTargets);
+        setSelectedTargetId(targetData.active_target_id || (allTargets[0] && allTargets[0].id));
         setAttackCount(attackData.total);
-        setSelectedMode(modeData.mode === 'VULNERABLE' ? 'VULNERABLE' : 'SECURE');
+        if (globalStatus?.target_mode === 'VULNERABLE') {
+          setSelectedMode('VULNERABLE');
+        }
       } catch (e) {
         if (mounted) setError(e.message);
       } finally {
@@ -42,13 +56,19 @@ export default function RunScan() {
       }
     }
     load();
-    return () => { mounted = false; };
-  }, []);
+    return () => {
+      mounted = false;
+    };
+  }, [globalStatus?.target_mode]);
+
+  const activeTarget = targets.find((t) => t.id === selectedTargetId) || targets[0];
+  const isTechMart = activeTarget?.provider === 'techmart';
 
   const toggleCat = (cat) => {
     setSelectedCats((prev) => {
       const next = new Set(prev);
-      if (next.has(cat)) next.delete(cat); else next.add(cat);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
       return next;
     });
   };
@@ -58,24 +78,40 @@ export default function RunScan() {
     else setSelectedCats(new Set(ALL_CATEGORIES));
   };
 
+  const handleTargetChange = async (targetId) => {
+    setSelectedTargetId(targetId);
+    try {
+      await selectTarget(targetId);
+      await refreshStatus();
+    } catch {
+      // Non-blocking
+    }
+  };
+
   const handleModeChange = async (mode) => {
     setSelectedMode(mode);
-    try {
-      await setTargetMode(mode);
-      await refreshStatus();
-      setTargetInfo((prev) => ({ ...prev, mode }));
-    } catch (e) {
-      setError(`Failed to set mode: ${e.message}`);
+    if (isTechMart) {
+      try {
+        await setTargetMode(mode);
+        await refreshStatus();
+      } catch (e) {
+        setError(`Failed to set mode: ${e.message}`);
+      }
     }
   };
 
   const handleStart = async () => {
-    if (selectedCats.size === 0) return;
+    if (selectedCats.size === 0 || !activeTarget) return;
     setLaunching(true);
     setError(null);
     try {
-      const cats = selectedCats.size === ALL_CATEGORIES.length ? undefined : [...selectedCats];
-      await startScan({ mode: selectedMode, categories: cats });
+      const cats =
+        selectedCats.size === ALL_CATEGORIES.length ? undefined : [...selectedCats];
+      await startScan({
+        target_id: activeTarget.id,
+        mode: isTechMart ? selectedMode : undefined,
+        categories: cats,
+      });
       await refreshStatus();
       navigate('/live-scan');
     } catch (e) {
@@ -95,7 +131,8 @@ export default function RunScan() {
     );
   }
 
-  const isTargetOffline = !targetInfo?.online;
+  const isTargetOffline =
+    isTechMart && !globalStatus?.target_online && activeTarget?.status !== 'connected';
 
   return (
     <div className="p-space-xl space-y-space-lg max-w-5xl">
@@ -112,20 +149,20 @@ export default function RunScan() {
           Configure & Launch Security Scan
         </h1>
         <p className="font-body-sm text-on-surface-variant">
-          Select target operational parameters, safety profile mode, and adversarial attack categories.
+          Select target AI model, operational parameters, and adversarial attack categories.
         </p>
       </div>
 
       {/* Target offline alert */}
       {isTargetOffline && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-space-md flex items-center gap-3">
-          <span className="material-symbols-outlined text-amber-400 text-[24px]">warning</span>
+        <div className="bg-amber-50 border border-amber-300 rounded-xl p-space-md flex items-center gap-3">
+          <span className="material-symbols-outlined text-amber-800 text-[24px]">warning</span>
           <div>
-            <div className="font-headline text-xs font-bold text-amber-400">
-              TechMart target service is unreachable
+            <div className="font-headline text-xs font-bold text-amber-900">
+              Selected TechMart target appears offline
             </div>
-            <div className="font-body-sm text-xs text-outline mt-0.5">
-              Please start the TechMart Support backend on port 8000 before initiating an adversarial scan.
+            <div className="font-body-sm text-xs text-amber-800 mt-0.5">
+              Please start the TechMart backend on port 8000, or switch to another configured LLM provider target below.
             </div>
           </div>
         </div>
@@ -137,81 +174,115 @@ export default function RunScan() {
         </div>
       )}
 
-      {/* Target Info */}
-      <div className="bg-surface-container-lowest p-space-lg rounded-xl border border-surface-container-high/60 shadow-sm">
-        <div className="font-headline-sm text-sm font-semibold text-on-surface mb-3 flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-[18px]">dns</span>
-          <span>Target Configuration</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {[
-            { label: 'Target System', value: 'TechMart Customer Support AI' },
-            { label: 'Base URL', value: 'http://127.0.0.1:8000' },
-            { label: 'Chat Endpoint', value: '/chat' },
-            { label: 'Status', value: isTargetOffline ? 'Offline' : 'Online', color: isTargetOffline ? 'text-amber-400' : 'text-tertiary' },
-            { label: 'Current Mode', value: targetInfo?.mode ?? '—', color: targetInfo?.mode === 'VULNERABLE' ? 'text-error' : 'text-tertiary' },
-            { label: 'Evaluation Model', value: 'Gemini 2.5 Flash / Pro' },
-          ].map(({ label, value, color }) => (
-            <div
-              key={label}
-              className="bg-surface-container-low border border-surface-container-high/50 rounded-lg p-3"
+      {/* Target Selector & Info */}
+      <div className="bg-surface-container-lowest p-space-lg rounded-xl border border-surface-container-high/60 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="font-headline-sm text-sm font-semibold text-on-surface flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-[18px]">dns</span>
+            <span>Scan Target Selection</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-outline">Active Target:</label>
+            <select
+              value={selectedTargetId || ''}
+              onChange={(e) => handleTargetChange(e.target.value)}
+              className="bg-surface-container border border-surface-container-high text-on-surface text-xs rounded-lg px-2.5 py-1.5 outline-none font-mono focus:border-primary"
             >
-              <div className="font-label-sm text-[10px] text-outline uppercase">{label}</div>
-              <div className={`font-mono text-xs font-semibold mt-1 truncate ${color ?? 'text-on-surface'}`}>
-                {value}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+              {targets.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name} ({t.provider.toUpperCase()} - {t.model || 'Default'})
+                </option>
+              ))}
+            </select>
 
-      {/* Mode Selector */}
-      <div className="bg-surface-container-lowest p-space-lg rounded-xl border border-surface-container-high/60 shadow-sm">
-        <div className="font-headline-sm text-sm font-semibold text-on-surface mb-1 flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-[18px]">tune</span>
-          <span>Target Operating Mode</span>
+            <button
+              onClick={() => navigate('/target')}
+              className="text-xs text-primary hover:underline px-2 py-1 font-medium cursor-pointer"
+            >
+              Manage Targets →
+            </button>
+          </div>
         </div>
-        <p className="font-body-sm text-xs text-outline mb-4">
-          Switch the target system prompt to test defense robustness under hardened vs weak boundary conditions.
-        </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {['SECURE', 'VULNERABLE'].map((mode) => {
-            const active = selectedMode === mode;
-            const isV = mode === 'VULNERABLE';
-            return (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => handleModeChange(mode)}
-                className={`p-4 rounded-xl text-left border transition-all cursor-pointer ${
-                  active
-                    ? isV
-                      ? 'bg-error/10 border-error text-error shadow-sm'
-                      : 'bg-primary/10 border-primary text-primary shadow-sm'
-                    : 'bg-surface-container-low border-surface-container-high hover:border-outline text-on-surface-variant'
-                }`}
+        {activeTarget && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: 'Target System', value: activeTarget.name },
+              {
+                label: 'Provider & Model',
+                value: `${activeTarget.provider.toUpperCase()} — ${activeTarget.model || 'Default'}`,
+              },
+              {
+                label: 'Endpoint / Gateway',
+                value: activeTarget.base_url || 'Cloud Default API',
+              },
+              {
+                label: 'Credentials',
+                value: activeTarget.masked_api_key || (activeTarget.has_api_key ? 'Encrypted' : 'None'),
+              },
+            ].map(({ label, value }) => (
+              <div
+                key={label}
+                className="bg-surface-container-low border border-surface-container-high/50 rounded-lg p-3"
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-headline text-sm font-bold">
-                    {mode} MODE
-                  </span>
-                  {active && (
-                    <span className="font-label-sm text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-surface-container-highest">
-                      Selected
-                    </span>
-                  )}
+                <div className="font-label-sm text-[10px] text-outline uppercase">{label}</div>
+                <div className="font-mono text-xs font-semibold mt-1 truncate text-on-surface">
+                  {value}
                 </div>
-                <div className="font-body-sm text-xs text-outline">
-                  {isV
-                    ? 'Weak system prompt with minimal refusal constraints. Intended for vulnerability demonstration.'
-                    : 'Hardened system prompt with strict refusal instructions and canary protections.'}
-                </div>
-              </button>
-            );
-          })}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Mode Selector (For TechMart target) */}
+      {isTechMart && (
+        <div className="bg-surface-container-lowest p-space-lg rounded-xl border border-surface-container-high/60 shadow-sm">
+          <div className="font-headline-sm text-sm font-semibold text-on-surface mb-1 flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-[18px]">tune</span>
+            <span>TechMart Policy Mode</span>
+          </div>
+          <p className="font-body-sm text-xs text-outline mb-4">
+            Toggle the demo target between hardened guardrails and weakened boundaries to validate adversarial sensitivity.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {['SECURE', 'VULNERABLE'].map((mode) => {
+              const active = selectedMode === mode;
+              const isV = mode === 'VULNERABLE';
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => handleModeChange(mode)}
+                  className={`p-4 rounded-xl text-left border transition-all cursor-pointer ${
+                    active
+                      ? isV
+                        ? 'bg-error/10 border-error text-error shadow-sm'
+                        : 'bg-primary/10 border-primary text-primary shadow-sm'
+                      : 'bg-surface-container-low border-surface-container-high hover:border-outline text-on-surface-variant'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-headline text-sm font-bold">{mode} MODE</span>
+                    {active && (
+                      <span className="font-label-sm text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-surface-container-highest">
+                        Selected
+                      </span>
+                    )}
+                  </div>
+                  <div className="font-body-sm text-xs text-outline">
+                    {isV
+                      ? 'Weak instructions with minimal boundary enforcement.'
+                      : 'Hardened system prompt with strict refusal instructions.'}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Attack Category Selector */}
       <div className="bg-surface-container-lowest p-space-lg rounded-xl border border-surface-container-high/60 shadow-sm">
@@ -229,7 +300,9 @@ export default function RunScan() {
           </button>
         </div>
         <p className="font-body-sm text-xs text-outline mb-4">
-          {attackCount !== null ? `${attackCount} total probes in attack generator library` : 'Loading attack vectors...'}
+          {attackCount !== null
+            ? `${attackCount} total probes in attack generator library`
+            : 'Loading attack vectors...'}
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -250,9 +323,7 @@ export default function RunScan() {
                   onChange={() => toggleCat(cat)}
                   className="rounded text-primary focus:ring-primary h-4 w-4 accent-amber-500"
                 />
-                <span className="font-body-sm text-xs font-medium">
-                  {cat}
-                </span>
+                <span className="font-body-sm text-xs font-medium">{cat}</span>
               </label>
             );
           })}
@@ -265,12 +336,12 @@ export default function RunScan() {
       {/* Action Footer */}
       <div className="flex items-center justify-between pt-2">
         <div className="font-body-sm text-xs text-outline">
-          Tests execute sequentially in a background worker thread.
+          Dispatches sequentially through target adapter with response normalization.
         </div>
         <button
           onClick={handleStart}
-          disabled={isTargetOffline || launching || selectedCats.size === 0}
-          className="btn-primary py-2.5 px-6 text-sm"
+          disabled={launching || selectedCats.size === 0 || !activeTarget}
+          className="btn-primary py-2.5 px-6 text-sm cursor-pointer disabled:opacity-50"
         >
           {launching ? (
             <>

@@ -16,7 +16,7 @@ export default function FindingDetails() {
       .then((data) => {
         if (!mounted) return;
         const decodedId = decodeURIComponent(id || '');
-        const found = (data?.results ?? []).find((r) => r.id === decodedId);
+        const found = (data?.results ?? []).find((r) => r.id === decodedId || r.test_id === decodedId);
         if (found) setResult(found);
         else setError(`No finding with ID "${decodedId}" found.`);
         setLoading(false);
@@ -36,7 +36,7 @@ export default function FindingDetails() {
         <span className="material-symbols-outlined animate-spin text-[32px] text-primary">
           refresh
         </span>
-        <div className="font-body-sm text-outline">Loading finding telemetry...</div>
+        <div className="font-body-sm text-outline text-sm">Loading finding telemetry…</div>
       </div>
     );
   }
@@ -44,13 +44,13 @@ export default function FindingDetails() {
   if (error || !result) {
     return (
       <div className="p-space-xl">
-        <div className="bg-surface-container-lowest border border-error/40 rounded-xl p-space-xl text-center flex flex-col items-center gap-3">
+        <div className="bg-surface-container-lowest border border-error/40 rounded-xl p-space-xl text-center flex flex-col items-center gap-3 shadow-sm">
           <span className="material-symbols-outlined text-[36px] text-error">gpp_maybe</span>
-          <div className="font-headline-sm text-on-surface">Finding Not Found</div>
+          <div className="font-headline text-lg font-bold text-on-surface">Finding Not Found</div>
           <div className="font-mono text-xs text-outline">{error}</div>
-          <button onClick={() => navigate('/results')} className="btn-secondary mt-3">
+          <button onClick={() => navigate('/results')} className="btn-secondary mt-3 cursor-pointer flex items-center gap-1.5">
             <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-            <span>Back to Results</span>
+            <span>Back to Findings</span>
           </button>
         </div>
       </div>
@@ -69,7 +69,7 @@ export default function FindingDetails() {
           className="flex items-center gap-1.5 text-xs font-mono text-outline hover:text-on-surface transition-colors cursor-pointer"
         >
           <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-          <span>Back to Inspection Log</span>
+          <span>Back to Findings Log</span>
         </button>
       </div>
 
@@ -87,13 +87,13 @@ export default function FindingDetails() {
             </span>
           </div>
           {result.timestamp && (
-            <span className="font-mono text-[11px] text-outline">
+            <span className="font-mono text-xs text-outline">
               Evaluated {new Date(result.timestamp).toLocaleTimeString()}
             </span>
           )}
         </div>
 
-        <h1 className="font-headline-md text-xl font-bold text-on-surface">
+        <h1 className="font-headline text-xl font-bold text-on-surface">
           {result.name}
         </h1>
       </div>
@@ -112,7 +112,7 @@ export default function FindingDetails() {
       <div className="bg-surface-container-lowest p-space-lg rounded-xl border border-surface-container-high/60 shadow-sm flex flex-col gap-2">
         <div className="font-label-sm text-[10px] uppercase text-outline font-semibold tracking-wider flex items-center justify-between">
           <span>Adversarial Prompt Payload</span>
-          <span className="text-primary font-mono text-[10px]">User Input</span>
+          <span className="text-primary font-mono text-xs font-semibold">User Input</span>
         </div>
         <div className="font-mono text-xs text-on-surface bg-surface-container-low border border-surface-container-high p-4 rounded-lg whitespace-pre-wrap break-all leading-relaxed">
           {result.prompt}
@@ -127,7 +127,7 @@ export default function FindingDetails() {
         </div>
         <div
           className={`font-mono text-xs bg-surface-container-low border border-surface-container-high p-4 rounded-lg whitespace-pre-wrap break-all leading-relaxed ${
-            isVuln ? 'text-error' : isErr ? 'text-amber-300' : 'text-on-surface-variant'
+            isVuln ? 'text-red-800' : isErr ? 'text-amber-800 font-semibold' : 'text-on-surface-variant'
           }`}
         >
           {result.response || '(No response captured from target)'}
@@ -142,7 +142,7 @@ export default function FindingDetails() {
         <div className="flex items-center gap-3">
           <span
             className={`material-symbols-outlined text-[24px] ${
-              isVuln ? 'text-error' : isErr ? 'text-amber-400' : 'text-tertiary'
+              isVuln ? 'text-error' : isErr ? 'text-amber-800' : 'text-emerald-800'
             }`}
           >
             {isVuln ? 'gpp_bad' : isErr ? 'warning' : 'verified_user'}
@@ -162,7 +162,7 @@ export default function FindingDetails() {
         </div>
 
         {result.detail && (
-          <div className="bg-surface-container-low border border-surface-container-high/70 p-3 rounded-lg font-mono text-xs text-amber-400">
+          <div className="bg-surface-container-low border border-surface-container-high/70 p-3 rounded-lg font-mono text-xs text-amber-900">
             {result.detail}
           </div>
         )}
@@ -178,7 +178,7 @@ export default function FindingDetails() {
           <p className="font-body-sm text-xs text-on-surface-variant leading-relaxed">
             The target LLM yielded confidential parameters when exposed to this adversarial context. Recommended mitigations:
           </p>
-          <ul className="list-disc pl-5 font-body-sm text-xs text-outline space-y-1.5">
+          <ul className="list-disc pl-5 font-body-sm text-xs text-on-surface-variant space-y-1.5">
             <li>Deploy output token sanitizer regex filtering on gateway egress for all canary patterns.</li>
             <li>Enforce boundary reinforcement rules in system prompt (SECURE mode).</li>
             <li>Apply temperature reductions and repetition penalties to restrict token continuation overrides.</li>

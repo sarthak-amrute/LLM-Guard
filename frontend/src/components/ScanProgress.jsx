@@ -34,7 +34,7 @@ export default function ScanProgress({ status, total, completed, currentAttack, 
 
       {/* Live attack info */}
       {isRunning && currentAttack && (
-        <div className="bg-surface-container-low border border-surface-container-high/60 rounded-lg p-3 flex flex-col gap-1">
+        <div className="bg-surface-container-low border border-primary/30 rounded-lg p-3 flex flex-col gap-1">
           <div className="font-label-sm text-[10px] text-primary uppercase font-bold tracking-wider">
             Current Probe
           </div>
@@ -58,7 +58,7 @@ export default function ScanProgress({ status, total, completed, currentAttack, 
         {[
           { label: 'SAFE', value: summary?.SAFE ?? 0, color: 'text-tertiary', border: 'border-tertiary/20' },
           { label: 'VULNERABLE', value: summary?.VULNERABLE ?? 0, color: 'text-error', border: 'border-error/20' },
-          { label: 'ERROR', value: summary?.TARGET_ERROR ?? 0, color: 'text-amber-300', border: 'border-amber-500/20' },
+          { label: 'ERROR', value: summary?.TARGET_ERROR ?? 0, color: 'text-amber-800', border: 'border-amber-300' },
         ].map(({ label, value, color, border }) => (
           <div
             key={label}

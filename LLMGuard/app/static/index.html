@@ -358,19 +358,24 @@
 
       <div style="margin-bottom:24px;">
         <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.5px;margin:0 0 4px;">Run Security Scan</h1>
-        <p style="font-size:13px;color:#aba3c7;margin:0;">Configure and execute adversarial tests against TechMart Support AI.</p>
+        <p style="font-size:13px;color:#aba3c7;margin:0;">Configure and execute adversarial tests against the selected target.</p>
       </div>
 
       <!-- Target -->
       <div class="card" style="padding:20px;margin-bottom:16px;">
-        <div class="sec-label" style="margin-bottom:14px;">Target</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="sec-label">Selected Target</div>
+          <button onclick="navigate('target-config')" class="btn-ghost" style="font-size:11px;padding:4px 10px;">
+            <span class="ms" style="font-size:14px;">swap_horiz</span>Change Target
+          </button>
+        </div>
         <div style="display:flex;align-items:center;gap:12px;">
           <div style="width:42px;height:42px;border-radius:10px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <span class="ms" style="color:#10b981;">hub</span>
+            <span id="rs-target-icon" class="ms" style="color:#10b981;">hub</span>
           </div>
           <div style="flex:1;">
-            <div style="font-size:14px;font-weight:600;color:#e8e5f5;">TechMart Customer Support AI</div>
-            <div class="mono" style="font-size:11px;color:#aba3c7;margin-top:2px;">http://127.0.0.1:8000/chat</div>
+            <div id="rs-target-name" style="font-size:14px;font-weight:600;color:#e8e5f5;">Loading Target…</div>
+            <div id="rs-target-model" class="mono" style="font-size:11px;color:#aba3c7;margin-top:2px;">—</div>
           </div>
           <div id="rs-target-status" style="display:flex;align-items:center;gap:7px;padding:6px 12px;background:#191629;border:1px solid #2d2945;border-radius:8px;">
             <span id="rs-tdot" style="width:7px;height:7px;border-radius:50%;background:#7e789a;flex-shrink:0;"></span>
@@ -379,9 +384,9 @@
         </div>
       </div>
 
-      <!-- Mode -->
-      <div class="card" style="padding:20px;margin-bottom:16px;">
-        <div class="sec-label" style="margin-bottom:14px;">Target Mode</div>
+      <!-- Mode (TechMart Target only) -->
+      <div id="rs-mode-section" class="card" style="padding:20px;margin-bottom:16px;">
+        <div class="sec-label" style="margin-bottom:14px;">TechMart Target Mode</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
           <label id="mode-card-secure" style="display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:10px;border:2px solid #10b981;background:rgba(16,185,129,0.05);cursor:pointer;transition:all 0.15s;">
             <input type="radio" name="scan-mode" value="SECURE" checked style="margin-top:2px;">
@@ -399,6 +404,18 @@
           </label>
         </div>
       </div>
+
+      <!-- External Target Notice (Shown when external AI target selected) -->
+      <div id="rs-external-section" class="card" style="display:none;padding:16px 20px;margin-bottom:16px;background:rgba(16,185,129,0.04);border-color:rgba(16,185,129,0.3);">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="ms" style="color:#10b981;font-size:20px;">verified</span>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#e8e5f5;">Real AI Target Selected</div>
+            <div class="mono" style="font-size:11px;color:#aba3c7;margin-top:2px;">Adversarial probes will be sent to the live provider endpoint and evaluated against canary tokens.</div>
+          </div>
+        </div>
+      </div>
+
 
       <!-- Categories -->
       <div class="card" style="padding:20px;margin-bottom:20px;">
@@ -565,42 +582,86 @@
     </div>
 
     <!-- ═══ TARGET CONFIG ═══ -->
-    <div id="page-target-config" class="page" style="padding:28px;max-width:700px;">
-      <div style="margin-bottom:24px;">
-        <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.5px;margin:0 0 4px;">Target Configuration</h1>
-        <p style="font-size:13px;color:#aba3c7;margin:0;">Manage the LLMGuard test target and connection settings.</p>
+    <div id="page-target-config" class="page" style="padding:28px;max-width:850px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
+        <div>
+          <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.5px;margin:0 0 4px;">Target Configuration</h1>
+          <p style="font-size:13px;color:#aba3c7;margin:0;">Manage LLM test targets, API keys, and connection settings.</p>
+        </div>
+        <button onclick="toggleAddTarget(true)" class="btn-primary" style="font-size:12px;padding:8px 16px;">
+          <span class="ms" style="font-size:16px;">add</span>Add Target
+        </button>
       </div>
 
-      <!-- Target info -->
-      <div class="card" style="padding:20px;margin-bottom:16px;">
-        <div class="sec-label" style="margin-bottom:14px;">Target Application</div>
-        <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;">
-          <div style="width:46px;height:46px;border-radius:12px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <span class="ms" style="color:#10b981;font-size:22px;">hub</span>
+      <!-- Configured Targets List -->
+      <div class="card" style="margin-bottom:20px;overflow:hidden;">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+          <span class="sec-label">Configured Targets</span>
+          <span id="target-count-badge" class="mono" style="font-size:10px;color:#7e789a;">Loading…</span>
+        </div>
+        <div id="target-list" style="padding:10px 16px;">
+          <div class="mono" style="color:#7e789a;font-size:11px;text-align:center;padding:24px;">Loading targets…</div>
+        </div>
+      </div>
+
+      <!-- Add Target Form (collapsible / toggleable) -->
+      <div id="add-target-card" class="card" style="display:none;padding:20px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <span class="sec-label">Configure New Target</span>
+          <button onclick="toggleAddTarget(false)" style="background:none;border:none;color:#7e789a;cursor:pointer;"><span class="ms">close</span></button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;color:#e8e5f5;margin-bottom:4px;">Provider</label>
+            <select id="nt-provider" onchange="onProviderChange()" class="inp" style="width:100%;">
+              <option value="gemini">Google Gemini</option>
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic Claude</option>
+              <option value="openrouter">OpenRouter</option>
+              <option value="custom">Custom REST API</option>
+            </select>
           </div>
           <div>
-            <div style="font-size:15px;font-weight:600;color:#e8e5f5;">TechMart Customer Support AI</div>
-            <div class="mono" style="font-size:11px;color:#aba3c7;margin-top:3px;">http://127.0.0.1:8000</div>
-            <div class="mono" style="font-size:10px;color:#7e789a;margin-top:2px;">Endpoints: /chat · GET /mode · POST /mode</div>
+            <label style="display:block;font-size:11px;font-weight:600;color:#e8e5f5;margin-bottom:4px;">Target Name</label>
+            <input id="nt-name" type="text" placeholder="e.g. Gemini Production AI" class="inp" style="width:100%;">
           </div>
         </div>
-        <div style="background:#191629;border:1px solid #2d2945;border-radius:8px;padding:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span id="tc-conn-dot" style="width:9px;height:9px;border-radius:50%;background:#7e789a;flex-shrink:0;"></span>
-            <div>
-              <div id="tc-conn-label" style="font-size:13px;font-weight:600;color:#e8e5f5;">Checking…</div>
-              <div id="tc-conn-detail" class="mono" style="font-size:10px;color:#7e789a;margin-top:1px;"></div>
-            </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;color:#e8e5f5;margin-bottom:4px;">Model Identifier</label>
+            <input id="nt-model" type="text" value="gemini-3.5-flash-lite" placeholder="e.g. gemini-3.5-flash-lite" class="inp" style="width:100%;">
           </div>
-          <button onclick="testConn()" class="btn-ghost" style="font-size:12px;padding:7px 14px;">
-            <span class="ms" style="font-size:16px;">wifi_tethering</span>Test Connection
+          <div>
+            <label style="display:block;font-size:11px;font-weight:600;color:#e8e5f5;margin-bottom:4px;">API Key (Encrypted server-side)</label>
+            <input id="nt-apikey" type="password" placeholder="AIzaSy... / sk-..." class="inp" style="width:100%;">
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="display:block;font-size:11px;font-weight:600;color:#e8e5f5;margin-bottom:4px;">Custom Canary Tokens (comma-separated, optional)</label>
+          <input id="nt-canaries" type="text" placeholder="CONFIDENTIAL-KEY-01, ADMIN-TOKEN-99" class="inp" style="width:100%;">
+          <p class="mono" style="font-size:10px;color:#7e789a;margin:4px 0 0;">Evaluator checks for leakage of these tokens in model responses.</p>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input id="nt-auth" type="checkbox" style="border-radius:4px;">
+            <span style="font-size:12px;color:#e8e5f5;">I confirm I own or have explicit authorization to perform security testing on this target.</span>
+          </label>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button onclick="saveNewTarget()" class="btn-primary" style="font-size:12px;padding:8px 18px;">
+            <span class="ms" style="font-size:16px;">save</span>Save &amp; Activate Target
           </button>
+          <span id="nt-msg" class="mono" style="font-size:11px;color:#7e789a;"></span>
         </div>
       </div>
 
-      <!-- Mode control -->
-      <div class="card" style="padding:20px;">
-        <div class="sec-label" style="margin-bottom:14px;">Operating Mode</div>
+      <!-- Mode control (Shown when TechMart target active) -->
+      <div id="tc-mode-card" class="card" style="padding:20px;">
+        <div class="sec-label" style="margin-bottom:14px;">TechMart Target Operating Mode</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
           <button id="tc-btn-s" onclick="switchMode('SECURE')"
             style="padding:16px;border-radius:10px;border:2px solid #10b981;background:rgba(16,185,129,0.05);text-align:left;cursor:pointer;transition:all 0.15s;">
@@ -772,6 +833,9 @@
   let scanResults = null;
   let resFilter = 'all';
   let resultMap = {};
+  let activeTargetId = null;
+  let allTargets = [];
+  let allProviders = [];
 
   // ─────────────────────────────────────────── API SERVICE
   const api = {
@@ -784,8 +848,14 @@
       const r = await fetch(API + path, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
       if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.detail || 'HTTP ' + r.status); }
       return r.json();
+    },
+    async delete(path) {
+      const r = await fetch(API + path, { method:'DELETE' });
+      if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.detail || 'HTTP ' + r.status); }
+      return r.json();
     }
   };
+
 
   // ─────────────────────────────────────────── BADGE
   function badge(verdict) {
@@ -918,12 +988,20 @@
       }).join('');
     } catch(e) { document.getElementById('cat-checkboxes').innerHTML = '<div class="mono" style="color:#f43f5e;font-size:11px;grid-column:1/-1;">Failed to load attacks: ' + e.message + '</div>'; }
 
-    // Target status
+    // Active target status
     try {
-      const m = await api.get('/api/target/mode');
-      document.getElementById('rs-tdot').style.background = m.online ? '#10b981' : '#f43f5e';
-      document.getElementById('rs-tlabel').textContent = m.online ? `Online · ${m.mode}` : 'Target Offline';
-      document.getElementById('rs-tlabel').style.color = m.online ? '#10b981' : '#f43f5e';
+      const s = await api.get('/api/status');
+      if (s.active_target) {
+        activeTargetId = s.active_target.id;
+        document.getElementById('rs-target-name').textContent = s.active_target.name;
+        document.getElementById('rs-target-model').textContent = `${s.active_target.provider.toUpperCase()} · ${s.active_target.model || 'Standard'}`;
+        const isTechMart = s.active_target.provider === 'techmart';
+        document.getElementById('rs-mode-section').style.display = isTechMart ? 'block' : 'none';
+        document.getElementById('rs-external-section').style.display = isTechMart ? 'none' : 'block';
+      }
+      document.getElementById('rs-tdot').style.background = s.target_online ? '#10b981' : '#f43f5e';
+      document.getElementById('rs-tlabel').textContent = s.target_online ? (s.target_mode || 'Online') : 'Target Offline';
+      document.getElementById('rs-tlabel').style.color = s.target_online ? '#10b981' : '#f43f5e';
     } catch(e) {}
 
     // Mode card toggle
@@ -935,12 +1013,14 @@
     const mode = document.querySelector('input[name="scan-mode"]:checked')?.value;
     const sc = document.getElementById('mode-card-secure');
     const vc = document.getElementById('mode-card-vuln');
-    if (mode === 'SECURE') {
-      sc.style.borderColor = '#10b981'; sc.style.background = 'rgba(16,185,129,0.05)';
-      vc.style.borderColor = '#2d2945'; vc.style.background = 'transparent';
-    } else {
-      vc.style.borderColor = '#f43f5e'; vc.style.background = 'rgba(244,63,94,0.05)';
-      sc.style.borderColor = '#2d2945'; sc.style.background = 'transparent';
+    if (sc && vc) {
+      if (mode === 'SECURE') {
+        sc.style.borderColor = '#10b981'; sc.style.background = 'rgba(16,185,129,0.05)';
+        vc.style.borderColor = '#2d2945'; vc.style.background = 'transparent';
+      } else {
+        vc.style.borderColor = '#f43f5e'; vc.style.background = 'rgba(244,63,94,0.05)';
+        sc.style.borderColor = '#2d2945'; sc.style.background = 'transparent';
+      }
     }
   }
 
@@ -957,7 +1037,11 @@
     btn.disabled = true; msg.textContent = 'Starting scan…';
 
     try {
-      await api.post('/api/scan/start', { mode, categories: cats.length === [...new Set(allAttacks.map(a=>a.category))].length ? null : cats });
+      await api.post('/api/scan/start', {
+        target_id: activeTargetId || null,
+        mode: mode || null,
+        categories: cats.length === [...new Set(allAttacks.map(a=>a.category))].length ? null : cats
+      });
       msg.textContent = 'Scan started! Navigating to Live Scan…';
       setTimeout(() => navigate('live-scan'), 700);
     } catch(e) {
@@ -965,6 +1049,7 @@
       btn.disabled = false;
     }
   }
+
 
   // ─────────────────────────────────────────── LIVE SCAN
   async function loadLiveScan() {
@@ -1125,32 +1210,205 @@
   }
 
   // ─────────────────────────────────────────── TARGET CONFIG
-  async function loadTargetConfig() { await testConn(); }
+  function toggleAddTarget(show) {
+    const card = document.getElementById('add-target-card');
+    card.style.display = show ? 'block' : 'none';
+    if (show) {
+      document.getElementById('nt-name').focus();
+    }
+  }
 
-  async function testConn() {
-    const dot = document.getElementById('tc-conn-dot');
-    const lbl = document.getElementById('tc-conn-label');
-    const det = document.getElementById('tc-conn-detail');
-    dot.style.background = '#f59e0b'; lbl.textContent = 'Testing…'; det.textContent = '';
+  function onProviderChange() {
+    const provId = document.getElementById('nt-provider').value;
+    const prov = allProviders.find(p => p.id === provId);
+    if (prov) {
+      document.getElementById('nt-model').value = prov.default_model || '';
+      document.getElementById('nt-name').placeholder = `e.g. ${prov.name} Test`;
+      document.getElementById('nt-apikey').placeholder = prov.requires_api_key ? 'Required API Key' : 'Optional / Not required';
+    }
+  }
+
+  async function loadTargetConfig() {
+    try {
+      // 1. Providers
+      const pData = await api.get('/api/providers');
+      allProviders = pData.providers || [];
+      const provSel = document.getElementById('nt-provider');
+      provSel.innerHTML = allProviders.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+      onProviderChange();
+
+      // 2. Targets
+      const tData = await api.get('/api/targets');
+      allTargets = tData.targets || [];
+      activeTargetId = tData.active_target_id;
+      renderTargetsList(allTargets, activeTargetId);
+
+      // 3. TechMart Mode Card visibility
+      const active = allTargets.find(t => t.id === activeTargetId);
+      const isTechMart = active && active.provider === 'techmart';
+      const modeCard = document.getElementById('tc-mode-card');
+      if (modeCard) modeCard.style.display = isTechMart ? 'block' : 'none';
+      if (isTechMart) await checkTechMartMode();
+    } catch(e) {
+      document.getElementById('target-list').innerHTML = `<div style="text-align:center;padding:24px;color:#f43f5e;" class="mono">Failed to load targets: ${e.message}</div>`;
+    }
+  }
+
+  function renderTargetsList(targets, activeId) {
+    document.getElementById('target-count-badge').textContent = `${targets.length} Target${targets.length === 1 ? '' : 's'}`;
+    const list = document.getElementById('target-list');
+    if (!targets.length) {
+      list.innerHTML = `<div style="text-align:center;padding:24px;color:#7e789a;" class="mono">No targets configured. Click "Add Target" to configure one.</div>`;
+      return;
+    }
+
+    list.innerHTML = targets.map(t => {
+      const isActive = t.id === activeId;
+      const statusColor = t.status === 'connected' ? '#10b981' : t.status === 'error' ? '#f43f5e' : '#7e789a';
+      const statusLabel = t.status === 'connected' ? 'Connected' : t.status === 'error' ? 'Error' : 'Untested';
+      const keyDisplay = t.masked_api_key ? t.masked_api_key : (t.has_api_key ? '••••••••' : 'No Key');
+
+      return `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 12px;border-bottom:1px solid #2d2945;background:${isActive ? 'rgba(16,185,129,0.03)' : 'transparent'};border-radius:8px;margin-bottom:6px;">
+          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
+            <div style="width:38px;height:38px;border-radius:10px;background:#191629;border:1px solid #2d2945;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <span class="ms" style="color:${isActive ? '#10b981' : '#aba3c7'};font-size:20px;">hub</span>
+            </div>
+            <div style="min-width:0;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span style="font-size:13px;font-weight:600;color:#e8e5f5;">${t.name}</span>
+                ${isActive ? '<span class="badge badge-safe">ACTIVE</span>' : ''}
+                <span class="mono" style="font-size:9px;color:#7e789a;background:#191629;border:1px solid #2d2945;padding:1px 6px;border-radius:4px;">${t.provider.toUpperCase()}</span>
+              </div>
+              <div class="mono" style="font-size:10px;color:#aba3c7;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                ${t.model ? `Model: ${t.model} · ` : ''}Key: ${keyDisplay} ${t.base_url ? ` · ${t.base_url}` : ''}
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+            <div style="display:flex;align-items:center;gap:6px;" title="Status: ${statusLabel}">
+              <span id="t-dot-${t.id}" style="width:7px;height:7px;border-radius:50%;background:${statusColor};flex-shrink:0;"></span>
+              <span id="t-lbl-${t.id}" class="mono" style="font-size:10px;color:${statusColor};">${statusLabel}</span>
+            </div>
+            <button onclick="testTargetConnection('${t.id}')" class="btn-ghost" style="font-size:11px;padding:5px 10px;">
+              <span class="ms" style="font-size:14px;">wifi_tethering</span>Test
+            </button>
+            ${!isActive ? `
+              <button onclick="selectTarget('${t.id}')" class="btn-primary" style="font-size:11px;padding:5px 10px;">
+                Select
+              </button>` : ''}
+            ${t.id !== 'target-techmart-default' ? `
+              <button onclick="deleteTarget('${t.id}')" style="background:none;border:none;color:#7e789a;cursor:pointer;padding:4px;" title="Delete target">
+                <span class="ms" style="font-size:16px;">delete</span>
+              </button>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function selectTarget(targetId) {
+    try {
+      await api.post(`/api/targets/${targetId}/select`, {});
+      await refreshStatus();
+      await loadTargetConfig();
+    } catch(e) {
+      alert('Failed to select target: ' + e.message);
+    }
+  }
+
+  async function testTargetConnection(targetId) {
+    const dot = document.getElementById(`t-dot-${targetId}`);
+    const lbl = document.getElementById(`t-lbl-${targetId}`);
+    if (dot) dot.style.background = '#f59e0b';
+    if (lbl) { lbl.textContent = 'Testing…'; lbl.style.color = '#f59e0b'; }
+
+    try {
+      const res = await api.post(`/api/targets/${targetId}/test`, {});
+      if (res.success) {
+        if (dot) dot.style.background = '#10b981';
+        if (lbl) { lbl.textContent = `Connected (${res.latency_ms || 0}ms)`; lbl.style.color = '#10b981'; }
+      } else {
+        if (dot) dot.style.background = '#f43f5e';
+        if (lbl) { lbl.textContent = 'Failed'; lbl.style.color = '#f43f5e'; }
+        alert(`Connection test failed: ${res.message}`);
+      }
+      await refreshStatus();
+    } catch(e) {
+      if (dot) dot.style.background = '#f43f5e';
+      if (lbl) { lbl.textContent = 'Error'; lbl.style.color = '#f43f5e'; }
+      alert('Error testing target: ' + e.message);
+    }
+  }
+
+  async function deleteTarget(targetId) {
+    if (!confirm('Are you sure you want to delete this target?')) return;
+    try {
+      await api.delete(`/api/targets/${targetId}`);
+      await loadTargetConfig();
+      await refreshStatus();
+    } catch(e) {
+      alert('Failed to delete target: ' + e.message);
+    }
+  }
+
+  async function saveNewTarget() {
+    const provider = document.getElementById('nt-provider').value;
+    const name = document.getElementById('nt-name').value.trim();
+    const model = document.getElementById('nt-model').value.trim();
+    const apiKey = document.getElementById('nt-apikey').value.trim();
+    const canariesRaw = document.getElementById('nt-canaries').value.trim();
+    const authChecked = document.getElementById('nt-auth').checked;
+    const msg = document.getElementById('nt-msg');
+
+    if (!name) { alert('Target name is required.'); return; }
+    if (!authChecked) { alert('You must confirm authorization to perform security testing.'); return; }
+
+    const canaries = canariesRaw ? canariesRaw.split(',').map(c => c.trim()).filter(Boolean) : [];
+
+    msg.textContent = 'Saving & activating…';
+    try {
+      const payload = {
+        name,
+        provider,
+        model: model || undefined,
+        api_key: apiKey || undefined,
+        canaries: canaries.length ? canaries : undefined,
+        authorization_confirmed: true,
+      };
+
+      const created = await api.post('/api/targets', payload);
+      // Select newly created target as active
+      await api.post(`/api/targets/${created.id}/select`, {});
+      msg.textContent = 'Target saved and activated!';
+      toggleAddTarget(false);
+      // Reset form
+      document.getElementById('nt-name').value = '';
+      document.getElementById('nt-apikey').value = '';
+      document.getElementById('nt-canaries').value = '';
+      document.getElementById('nt-auth').checked = false;
+      await loadTargetConfig();
+      await refreshStatus();
+    } catch(e) {
+      msg.textContent = 'Error: ' + e.message;
+    }
+  }
+
+  async function checkTechMartMode() {
     try {
       const m = await api.get('/api/target/mode');
-      if (m.online) {
-        dot.style.background = '#10b981';
-        lbl.textContent = 'Connected'; lbl.style.color = '#10b981';
-        det.textContent = `http://127.0.0.1:8000 · Mode: ${m.mode}`;
-        setText('tc-cur-mode', m.mode);
-        updateModeBtns(m.mode);
-      } else throw new Error('offline');
+      setText('tc-cur-mode', m.mode);
+      updateModeBtns(m.mode);
     } catch(e) {
-      dot.style.background = '#f43f5e';
-      lbl.textContent = 'Connection Failed'; lbl.style.color = '#f43f5e';
-      det.textContent = 'TechMart Support target is not reachable';
+      setText('tc-cur-mode', 'Unknown');
     }
   }
 
   function updateModeBtns(mode) {
     const sb = document.getElementById('tc-btn-s');
     const vb = document.getElementById('tc-btn-v');
+    if (!sb || !vb) return;
     if (mode === 'SECURE') {
       sb.style.borderColor='#10b981'; sb.style.background='rgba(16,185,129,0.05)';
       vb.style.borderColor='#2d2945'; vb.style.background='transparent';
@@ -1162,14 +1420,15 @@
 
   async function switchMode(mode) {
     const el = document.getElementById('tc-cur-mode');
-    el.textContent = 'Switching…';
+    if (el) el.textContent = 'Switching…';
     try {
       await api.post('/api/target/mode', {mode});
-      el.textContent = mode;
+      if (el) el.textContent = mode;
       updateModeBtns(mode);
       await refreshStatus();
-    } catch(e) { el.textContent = 'Error: ' + e.message; }
+    } catch(e) { if (el) el.textContent = 'Error: ' + e.message; }
   }
+
 
   // ─────────────────────────────────────────── REPORTS
   async function loadReports() {

@@ -2,6 +2,9 @@
 .env
 .env.*
 !.env.example
+.secret.key
+*.key
+LLMGuard/app/data/
 
 # Python virtual environments
 venv/

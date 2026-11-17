@@ -175,10 +175,10 @@ export default function TestCases() {
                       <span
                         className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
                           isV
-                            ? 'bg-error/15 text-error border border-error/30'
+                            ? 'bg-red-50 text-red-800 border border-red-200'
                             : isE
-                            ? 'bg-surface-container-high text-amber-200 border border-amber-500/30'
-                            : 'bg-tertiary/15 text-tertiary border border-tertiary/30'
+                            ? 'bg-amber-50 text-amber-800 border border-amber-300'
+                            : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                         }`}
                       >
                         {verdict}

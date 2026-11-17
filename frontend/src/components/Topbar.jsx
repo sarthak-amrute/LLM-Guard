@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Bell, Menu, Plus, Search, Settings, ShieldCheck } from 'lucide-react';
 import { useStatus } from '../context/useStatus';
 
 export default function Topbar({ onMenuClick }) {
@@ -14,27 +15,21 @@ export default function Topbar({ onMenuClick }) {
   };
 
   const isGuardrailActive = status?.target_mode === 'SECURE' || status?.target_online;
+  const isOnline = status?.llmguard === 'running';
 
   return (
-    <header className="fixed top-0 left-72 right-0 h-20 bg-surface-container-lowest/95 backdrop-blur-xl border-b border-surface-container-high/50 shadow-[0_2px_12px_rgba(0,0,0,0.5)] z-40 flex items-center justify-between px-6">
-      {/* Mobile Menu Toggle & Search Bar */}
-      <div className="flex items-center gap-4 flex-1 max-w-xl">
+    <header className="fixed left-0 right-0 top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-[#e3e0d6] bg-[#fffefa]/95 px-3 backdrop-blur-sm sm:h-20 sm:px-6 lg:left-72">
+      <div className="flex min-w-0 max-w-xl flex-1 items-center gap-2 sm:gap-4">
         {onMenuClick && (
-          <button
-            onClick={onMenuClick}
-            className="md:hidden text-outline hover:text-on-surface p-1.5 mr-2 rounded-lg hover:bg-surface-container-high"
-            aria-label="Open menu"
-          >
-            <span className="material-symbols-outlined text-[22px]">menu</span>
+          <button onClick={onMenuClick} className="shrink-0 rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 lg:hidden" aria-label="Open menu">
+            <Menu className="h-5 w-5" />
           </button>
         )}
-        <div className="relative w-full">
-          <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] text-outline pointer-events-none">
-            search
-          </span>
+        <div className="relative hidden w-full min-w-0 sm:block">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
-            className="w-full bg-surface-container-low border border-surface-container-high/60 text-on-surface placeholder:text-outline text-[14px] rounded-xl pl-11 pr-4 py-2.5 outline-none focus:border-primary/70 focus:bg-surface-container transition-all shadow-inner"
-            placeholder="Search security tests, endpoints, CVEs, attack vectors..."
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-blue-300 focus:bg-white"
+            placeholder="Search security tests, attack vectors, or findings..."
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -43,48 +38,44 @@ export default function Topbar({ onMenuClick }) {
         </div>
       </div>
 
-      {/* Right Action Icons & Status */}
-      <div className="flex items-center gap-4">
-        {/* Latency & Guardrail indicator */}
-        <div className="hidden xl:flex items-center gap-2.5 px-3.5 py-2 bg-surface-container-low border border-surface-container-high/60 rounded-xl shadow-sm">
-          <span className="h-2.5 w-2.5 rounded-full bg-tertiary shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-          <span className="text-[13px] text-on-surface-variant font-medium">
-            Latency: <span className="text-on-surface font-bold">142ms</span>
+      <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+        <div className="hidden items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 xl:flex">
+          <span className={`inline-block h-2.5 w-2.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-red-500'} shadow-[0_0_0_4px_rgba(16,185,129,0.12)]`} />
+          <span className="text-sm text-slate-600">
+            System: <span className="font-semibold text-slate-900">{isOnline ? 'Operational' : 'Offline'}</span>
           </span>
-          <span className="text-surface-container-highest">|</span>
-          <span className="text-[13px] text-primary font-bold flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[16px]">verified_user</span>
-            <span>{isGuardrailActive ? 'Guardrail Active' : 'Unfiltered Mode'}</span>
+          <span className="text-slate-300">|</span>
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700">
+            <ShieldCheck className="h-4 w-4" />
+            {isGuardrailActive ? 'Guardrail Active' : 'Unfiltered Mode'}
           </span>
         </div>
 
-        {/* New Scan Button */}
         <button
           onClick={() => navigate('/run-scan')}
-          className="flex items-center gap-2 bg-primary text-on-primary text-[13.5px] font-bold px-4 py-2.5 rounded-xl hover:bg-amber-400 transition-all shadow-[0_0_18px_rgba(245,158,11,0.3)] cursor-pointer"
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 sm:px-4 cursor-pointer"
         >
-          <span className="material-symbols-outlined text-[20px]">add_moderator</span>
-          <span>New Scan</span>
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">New Scan</span>
         </button>
 
-        {/* Notification Bell */}
         <button
           onClick={() => navigate('/results')}
-          className="relative text-on-surface-variant hover:text-on-surface transition-colors p-2 rounded-xl hover:bg-surface-container-high cursor-pointer"
-          title="Notifications & Alerts"
+          className="relative rounded-xl border border-slate-200 bg-white p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+          aria-label="Findings"
+          title="View Findings"
         >
-          <span className="material-symbols-outlined text-[22px]">notifications</span>
-          <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 bg-error rounded-full ring-2 ring-surface-container-lowest" />
+          <Bell className="h-4 w-4" />
         </button>
 
-        {/* User Avatar */}
-        <div
+        <button
           onClick={() => navigate('/settings')}
-          className="w-10 h-10 rounded-xl bg-surface-container-high border border-outline-variant/60 flex items-center justify-center cursor-pointer hover:border-primary hover:shadow-[0_0_10px_rgba(245,158,11,0.2)] transition-all"
-          title="SecOps Auditor Profile"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 transition hover:border-primary/30 hover:bg-surface-container-high hover:text-primary cursor-pointer"
+          aria-label="Open settings"
+          title="Settings"
         >
-          <span className="material-symbols-outlined text-primary text-[20px]">person</span>
-        </div>
+          <Settings className="h-4 w-4" />
+        </button>
       </div>
     </header>
   );

@@ -18,10 +18,10 @@ export default function FindingCard({ result, onClick }) {
             <span
               className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                 isVuln
-                  ? 'bg-error-container/80 text-error border border-error/40'
+                  ? 'bg-red-50 text-red-800 border border-red-200'
                   : isErr
-                  ? 'bg-surface-container-high text-amber-400 border border-amber-500/30'
-                  : 'bg-tertiary/15 text-tertiary border border-tertiary/30'
+                  ? 'bg-amber-50 text-amber-800 border border-amber-300'
+                  : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
               }`}
             >
               {isVuln ? 'Critical' : isErr ? 'Error' : 'Safe'}
@@ -31,7 +31,7 @@ export default function FindingCard({ result, onClick }) {
             </span>
           </div>
           <span className="font-label-sm text-xs text-outline">
-            ID: {result.id}
+            {result.name}
           </span>
         </div>
 
@@ -49,13 +49,13 @@ export default function FindingCard({ result, onClick }) {
             {isVuln ? 'auto_fix_high' : 'verified_user'}
           </span>
           <span>
-            {isVuln ? 'Sanitization filter recommended' : 'Verified safe baseline'}
+            {isVuln ? 'Remediation recommended' : 'Verified safe baseline'}
           </span>
         </span>
         <button
           className="px-space-md py-1.5 rounded-lg bg-surface-container border border-surface-container-high hover:bg-surface-container-high text-on-surface font-label-md text-xs font-medium transition-colors"
         >
-          Review & Mitigate
+          Review Finding
         </button>
       </div>
     </div>
